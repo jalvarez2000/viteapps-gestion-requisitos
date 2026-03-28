@@ -1,0 +1,46 @@
+{
+  "name": "api",
+  "private": true,
+  "scripts": {
+    "dev": "bun --bun next dev -p 3002",
+    "build": "bun --bun next build",
+    "start": "bun --bun next start",
+    "analyze": "ANALYZE=true npm run build",
+    "test": "NODE_ENV=test vitest run",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "dependencies": {
+    "@repo/ai": "workspace:*",
+    "@repo/analytics": "workspace:*",
+    "@repo/auth": "workspace:*",
+    "@repo/database": "workspace:*",
+    "@repo/design-system": "workspace:*",
+    "@repo/email": "workspace:*",
+    "@repo/gmail": "workspace:*",
+    "@repo/next-config": "workspace:*",
+    "@repo/observability": "workspace:*",
+    "@repo/security": "workspace:*",
+    "@repo/storage": "workspace:*",
+    "@sentry/nextjs": "^10.42.0",
+    "@t3-oss/env-nextjs": "^0.13.10",
+    "@workflow/ai": "4.1.0-beta.58",
+    "import-in-the-middle": "^3.0.0",
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "require-in-the-middle": "8.0.1",
+    "svix": "^1.86.0",
+    "workflow": "4.2.0-beta.73",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "25.3.5",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
