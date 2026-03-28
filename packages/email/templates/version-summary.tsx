@@ -49,7 +49,7 @@ export const VersionSummaryEmail = ({
       <Html>
         <Head />
         <Preview>
-          Revisión completada — {projectName} v{versionNumber}
+          {`Revisión completada — ${projectName} v${versionNumber}`}
         </Preview>
         <Body className="bg-zinc-50 font-sans">
           <Container className="mx-auto py-12 max-w-2xl">

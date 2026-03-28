@@ -1,7 +1,7 @@
 "use server";
 
 import { database } from "@repo/database";
-import { sendVersionSummary } from "@repo/email";
+import { sendVersionSummary } from "@repo/gmail";
 import type { GroupSummary } from "@repo/email";
 import { revalidatePath } from "next/cache";
 

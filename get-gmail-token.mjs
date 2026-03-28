@@ -16,8 +16,8 @@ import { createServer } from "http";
 import { createInterface } from "readline";
 
 // ─── FILL THESE IN ───────────────────────────────────────────────────────────
-const CLIENT_ID = "YOUR_CLIENT_ID.apps.googleusercontent.com";
-const CLIENT_SECRET = "YOUR_CLIENT_SECRET";
+const CLIENT_ID = "GMAIL_CLIENT_ID_PLACEHOLDER";
+const CLIENT_SECRET = "GMAIL_CLIENT_SECRET_PLACEHOLDER";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const REDIRECT_URI = "http://localhost:3333/callback";

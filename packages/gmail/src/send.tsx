@@ -1,0 +1,55 @@
+import { renderVersionSummary } from '@repo/email';
+import type { VersionSummaryEmailProps } from '@repo/email';
+import { getGmailClient } from './client';
+import { keys } from './keys';
+
+function buildRawEmail({
+  from,
+  to,
+  subject,
+  html,
+}: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+}): string {
+  const message = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    html,
+  ].join('\r\n');
+
+  // Gmail API requires base64url encoding
+  return Buffer.from(message)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+export async function sendVersionSummary(params: {
+  to: string;
+  props: VersionSummaryEmailProps;
+}): Promise<void> {
+  const { GMAIL_TARGET_ADDRESS } = keys();
+  const gmail = getGmailClient();
+
+  const { html, subject } = await renderVersionSummary(params.props);
+
+  const raw = buildRawEmail({
+    from: GMAIL_TARGET_ADDRESS,
+    to: params.to,
+    subject,
+    html,
+  });
+
+  await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw },
+  });
+}
