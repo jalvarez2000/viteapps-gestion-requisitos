@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/design-system/components/ui/card";
-import { ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon, DownloadIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -18,7 +18,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id, versionId } = await params;
+  const { versionId } = await params;
   const version = await database.version.findUnique({
     where: { id: versionId },
     include: { project: { select: { name: true } } },
@@ -94,13 +94,21 @@ export default async function VersionPage({ params }: Props) {
           )}
           <VersionBadge status={version.status} />
         </div>
-        {hasPendingReview && (
-          <Button asChild>
-            <Link href={`/projects/${id}/versions/${versionId}/review`}>
-              Revisar requisitos
-            </Link>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <a download href={`/api/versions/${versionId}/export`}>
+              <DownloadIcon className="mr-2 h-4 w-4" />
+              Exportar para Claude
+            </a>
           </Button>
-        )}
+          {hasPendingReview && (
+            <Button asChild>
+              <Link href={`/projects/${id}/versions/${versionId}/review`}>
+                Revisar requisitos
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}

@@ -13,19 +13,18 @@ export async function freezeVersion(projectId: string, versionId: string) {
     throw new Error("Solo se pueden congelar versiones abiertas");
   }
 
-  await database.$transaction([
-    database.version.update({
-      where: { id: versionId },
-      data: { status: "FROZEN", frozenAt: new Date() },
-    }),
-    database.version.create({
-      data: {
-        projectId: version.projectId,
-        number: version.number + 1,
-        status: "OPEN",
-      },
-    }),
-  ]);
+  await database.version.update({
+    where: { id: versionId },
+    data: { status: "FROZEN", frozenAt: new Date() },
+  });
+
+  await database.version.create({
+    data: {
+      projectId: version.projectId,
+      number: version.number + 1,
+      status: "OPEN",
+    },
+  });
 
   revalidatePath(`/projects/${projectId}`);
 }
@@ -64,24 +63,27 @@ export async function freezeAndTagVersion(
     throw new Error("Solo se pueden etiquetar versiones abiertas o congeladas");
   }
 
-  await database.$transaction([
-    database.version.update({
-      where: { id: versionId },
-      data: {
-        status: "TAGGED",
-        tagName,
-        taggedAt: new Date(),
-        frozenAt: version.status === "OPEN" ? new Date() : undefined,
-      },
-    }),
-    database.version.create({
+  await database.version.update({
+    where: { id: versionId },
+    data: {
+      status: "TAGGED",
+      tagName,
+      taggedAt: new Date(),
+      frozenAt: version.status === "OPEN" ? new Date() : undefined,
+    },
+  });
+
+  // Only create the next version if coming from OPEN.
+  // If already FROZEN, freezeVersion already created it.
+  if (version.status === "OPEN") {
+    await database.version.create({
       data: {
         projectId: version.projectId,
         number: version.number + 1,
         status: "OPEN",
       },
-    }),
-  ]);
+    });
+  }
 
   revalidatePath(`/projects/${projectId}`);
 }

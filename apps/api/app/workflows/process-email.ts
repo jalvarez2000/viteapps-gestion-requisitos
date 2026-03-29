@@ -2,6 +2,18 @@ import type { EmailType as DbEmailType } from "@repo/database/generated/enums";
 import type { EmailType, ParsedAttachment } from "@repo/gmail";
 import { FatalError } from "workflow";
 
+// Genera el código de proyecto: hasta 12 chars del nombre + secuencia global.
+// Ejemplo: "Gestión de Requisitos" → "GESTIONDEREQ-001"
+function buildProjectSlug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quitar acentos
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "") // solo alfanumérico
+    .slice(0, 12)
+    .padEnd(1, "X"); // mínimo 1 char
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Step functions — full Node.js access, retryable, results cached
 // All Node.js-dependent imports (Prisma, Gmail) are dynamic so the
@@ -11,7 +23,8 @@ import { FatalError } from "workflow";
 async function resolveProject(
   appName: string,
   emailType: EmailType,
-  clientEmail: string
+  clientEmail: string,
+  userSize: "XS" | "S" | "M" | "L" | "XL" | null
 ) {
   "use step";
 
@@ -22,8 +35,17 @@ async function resolveProject(
       where: { name: appName },
     });
     if (!project) {
+      const slug = buildProjectSlug(appName);
+      const count = await database.project.count();
+      const seq = String(count + 1).padStart(3, "0");
+      const code = `${slug}-${seq}`;
       project = await database.project.create({
-        data: { name: appName, clientEmail },
+        data: { code, name: appName, clientEmail, userSize },
+      });
+    } else if (userSize) {
+      project = await database.project.update({
+        where: { id: project.id },
+        data: { userSize },
       });
     }
 
@@ -39,6 +61,7 @@ async function resolveProject(
 
     return {
       projectId: project.id,
+      projectCode: project.code,
       versionId: version.id,
       projectName: project.name,
       versionNumber: version.number,
@@ -71,6 +94,7 @@ async function resolveProject(
 
   return {
     projectId: project.id,
+    projectCode: project.code,
     versionId: project.versions[0].id,
     projectName: project.name,
     versionNumber: project.versions[0].number,
@@ -167,11 +191,21 @@ async function runExtractionAgent(params: {
   versionId: string;
   emailBody: string;
   sourceEmailId: string;
-}) {
+}): Promise<"XS" | "S" | "M" | "L" | "XL"> {
   "use step";
 
+  const { database } = await import("@repo/database");
   const { extractRequirementsFromEmail } = await import("@repo/ai");
-  return extractRequirementsFromEmail(params);
+
+  const { aiSize } = await extractRequirementsFromEmail(params);
+
+  // Persist AI size assessment on the project
+  await database.project.update({
+    where: { id: params.projectId },
+    data: { aiSize },
+  });
+
+  return aiSize;
 }
 
 async function openReviewCycle(projectId: string, versionId: string) {
@@ -196,22 +230,32 @@ async function openReviewCycle(projectId: string, versionId: string) {
 
 async function sendConfirmation(params: {
   to: string;
+  emailLogId: string;
   projectId: string;
   versionId: string;
   projectName: string;
   versionNumber: number;
   attachmentCount: number;
+  userSize: "XS" | "S" | "M" | "L" | "XL" | null;
+  aiSize: "XS" | "S" | "M" | "L" | "XL";
+  portalUrl: string;
 }) {
   "use step";
 
   const { database } = await import("@repo/database");
   const { sendReceptionConfirmation } = await import("@repo/gmail");
 
-  const requirements = await database.requirement.findMany({
-    where: { versionId: params.versionId, projectId: params.projectId },
-    include: { group: { select: { name: true } } },
-    orderBy: { createdAt: "asc" },
-  });
+  const [requirements, comments] = await Promise.all([
+    database.requirement.findMany({
+      where: { versionId: params.versionId, sourceEmailId: params.emailLogId },
+      include: { group: { select: { name: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    database.emailComment.findMany({
+      where: { emailLogId: params.emailLogId },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   await sendReceptionConfirmation({
     to: params.to,
@@ -225,6 +269,10 @@ async function sendConfirmation(params: {
         title: r.title,
         description: r.description,
       })),
+      comments: comments.map((c) => c.body),
+      userSize: params.userSize,
+      aiSize: params.aiSize,
+      portalUrl: params.portalUrl,
     },
   });
 }
@@ -250,14 +298,20 @@ export interface ProcessEmailInput {
   receivedAt: Date;
   subject: string;
   threadId: string;
+  userSize: "XS" | "S" | "M" | "L" | "XL" | null; // Talla indicada en el formulario
 }
 
 export async function processEmailWorkflow(input: ProcessEmailInput) {
   "use workflow";
 
   // 1. Resolve (or create) the project and target version
-  const { projectId, versionId, projectName, versionNumber } =
-    await resolveProject(input.appName, input.emailType, input.clientEmail);
+  const { projectId, projectCode, versionId, projectName, versionNumber } =
+    await resolveProject(
+      input.appName,
+      input.emailType,
+      input.clientEmail,
+      input.userSize
+    );
 
   // 2. Persist the email for audit trail
   const emailLogId = await logEmail({
@@ -282,7 +336,7 @@ export async function processEmailWorkflow(input: ProcessEmailInput) {
 
   // 4. Run the AI agent — include attachment text so it extracts requirements from files too
   const fullBody = input.body + attachmentTexts.join("");
-  await runExtractionAgent({
+  const aiSize = await runExtractionAgent({
     projectId,
     versionId,
     emailBody: fullBody,
@@ -293,13 +347,18 @@ export async function processEmailWorkflow(input: ProcessEmailInput) {
   await openReviewCycle(projectId, versionId);
 
   // 6. Send confirmation email with the extracted requirements table
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   await sendConfirmation({
     to: input.clientEmail,
+    emailLogId,
     projectId,
     versionId,
     projectName,
     versionNumber,
     attachmentCount: input.attachments.length,
+    userSize: input.userSize,
+    aiSize,
+    portalUrl: `${appUrl}/portal/${projectCode}`,
   });
 
   // 7. Mark email as processed in Gmail

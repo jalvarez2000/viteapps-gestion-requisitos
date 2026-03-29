@@ -1,5 +1,6 @@
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
@@ -17,21 +18,40 @@ export interface ReceivedRequirement {
   title: string;
 }
 
+export type ProjectSize = "XS" | "S" | "M" | "L" | "XL";
+
 export interface ReceptionConfirmationEmailProps {
+  aiSize: ProjectSize;
   attachmentCount: number;
+  comments: string[];
+  portalUrl: string;
   projectName: string;
   replySubject: string;
   requirements: ReceivedRequirement[];
+  userSize: ProjectSize | null;
   versionNumber: number;
 }
+
+const SIZE_LABELS: Record<ProjectSize, string> = {
+  XS: "XS — Una pantalla, una función",
+  S: "S — 3-5 pantallas, flujo lineal",
+  M: "M — Múltiples módulos, multi-usuario",
+  L: "L — Múltiples tipos de usuario, integraciones",
+  XL: "XL — Arquitectura distribuida, alta concurrencia",
+};
 
 export const ReceptionConfirmationEmail = ({
   projectName,
   versionNumber,
   requirements,
   attachmentCount,
+  comments,
   replySubject,
+  userSize,
+  aiSize,
+  portalUrl,
 }: ReceptionConfirmationEmailProps) => {
+  const hasMismatch = userSize !== null && userSize !== aiSize;
   // Group requirements by functional area
   const grouped = requirements.reduce<Record<string, ReceivedRequirement[]>>(
     (acc, req) => {
@@ -80,8 +100,8 @@ export const ReceptionConfirmationEmail = ({
                     <Text className="m-0 mb-2 border-zinc-200 border-b pb-1 font-semibold text-sm text-zinc-800">
                       {group}
                     </Text>
-                    {reqs.map((req, i) => (
-                      <Section className="mb-3 ml-3" key={i}>
+                    {reqs.map((req) => (
+                      <Section className="mb-3 ml-3" key={req.title}>
                         <Text className="m-0 font-medium text-sm text-zinc-900">
                           • {req.title}
                         </Text>
@@ -92,6 +112,62 @@ export const ReceptionConfirmationEmail = ({
                     ))}
                   </Section>
                 ))}
+
+                {comments.length > 0 ? (
+                  <>
+                    <Hr className="my-6" />
+                    <Text className="m-0 mb-3 font-semibold text-sm text-zinc-800">
+                      Observations et remarques
+                    </Text>
+                    {comments.map((c) => (
+                      <Section className="mb-2 ml-2" key={c}>
+                        <Text className="m-0 text-sm text-zinc-600">— {c}</Text>
+                      </Section>
+                    ))}
+                  </>
+                ) : null}
+
+                <Hr className="my-6" />
+
+                {/* Size assessment section */}
+                <Text className="m-0 mb-3 font-semibold text-sm text-zinc-800">
+                  Complexité du projet
+                </Text>
+                <Section className="mb-2 rounded bg-zinc-50 p-3">
+                  <Text className="m-0 text-sm text-zinc-700">
+                    <strong>Notre estimation :</strong> {SIZE_LABELS[aiSize]}
+                  </Text>
+                  {userSize ? (
+                    <Text className="m-0 mt-1 text-sm text-zinc-700">
+                      <strong>Taille indiquée :</strong> {SIZE_LABELS[userSize]}
+                    </Text>
+                  ) : null}
+                </Section>
+                {hasMismatch ? (
+                  <Text className="m-0 mb-4 text-amber-700 text-sm">
+                    ⚠ La taille que vous avez indiquée ({userSize}) diffère de
+                    notre estimation ({aiSize}). Notre équipe vous contactera si
+                    un ajustement du périmètre est nécessaire.
+                  </Text>
+                ) : (
+                  <Text className="m-0 mb-4 text-sm text-zinc-500">
+                    Notre estimation de complexité correspond à la taille
+                    indiquée.
+                  </Text>
+                )}
+
+                <Hr className="my-6" />
+
+                <Text className="m-0 mb-4 text-sm text-zinc-500">
+                  Vous pouvez consulter vos besoins et leur avancement à tout
+                  moment depuis votre espace client :
+                </Text>
+                <Button
+                  className="rounded bg-zinc-900 px-5 py-3 font-semibold text-sm text-white"
+                  href={portalUrl}
+                >
+                  Accéder à mon espace
+                </Button>
 
                 <Hr className="my-6" />
 
@@ -114,9 +190,14 @@ export const ReceptionConfirmationEmail = ({
 };
 
 ReceptionConfirmationEmail.PreviewProps = {
-  projectName: "Portal Clientes",
-  versionNumber: 1,
+  aiSize: "M",
   attachmentCount: 1,
+  portalUrl: "http://localhost:3000/portal/PORTALCLIENT-001",
+  comments: [
+    "¿Podéis incluir soporte para móvil desde el principio?",
+    "El plazo de entrega ideal sería antes de julio.",
+  ],
+  projectName: "Portal Clientes",
   requirements: [
     {
       group: "Autenticación",
@@ -135,6 +216,8 @@ ReceptionConfirmationEmail.PreviewProps = {
     },
   ],
   replySubject: "COMENTARIOS A REQUISITOS VERSION EN CURSO: Portal Clientes",
+  userSize: "S",
+  versionNumber: 1,
 } satisfies ReceptionConfirmationEmailProps;
 
 export default ReceptionConfirmationEmail;

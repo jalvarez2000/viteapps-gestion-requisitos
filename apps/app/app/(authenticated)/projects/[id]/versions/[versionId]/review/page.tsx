@@ -10,7 +10,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id, versionId } = await params;
+  const { versionId } = await params;
   const version = await database.version.findUnique({
     where: { id: versionId },
     include: { project: { select: { name: true } } },
@@ -28,11 +28,19 @@ export default async function ReviewPage({ params }: Props) {
   const version = await database.version.findUnique({
     where: { id: versionId },
     include: {
-      project: { select: { id: true, name: true } },
+      project: { select: { id: true, name: true, code: true } },
       groups: {
         orderBy: { createdAt: "asc" },
         include: {
-          requirements: { orderBy: { createdAt: "asc" } },
+          requirements: {
+            orderBy: { createdAt: "asc" },
+            include: {
+              portalComments: {
+                select: { id: true, author: true, body: true, createdAt: true },
+                orderBy: { createdAt: "asc" },
+              },
+            },
+          },
         },
       },
       reviewCycles: {

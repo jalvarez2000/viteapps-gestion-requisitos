@@ -22,4 +22,5 @@ export interface ParsedEmail {
   subject: string;
   threadId: string;
   type: EmailType;
+  userSize: "XS" | "S" | "M" | "L" | "XL" | null; // Talla indicada en el formulario
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { database } from "@repo/database";
+import { database, withProjectContext } from "@repo/database";
 import type { GroupSummary } from "@repo/email";
 import { sendVersionSummary } from "@repo/gmail";
 import { revalidatePath } from "next/cache";
@@ -90,4 +90,33 @@ export async function completeReview(
   revalidatePath(`/projects/${projectId}/versions/${versionId}/review`);
 
   return { projectId, versionId };
+}
+
+export async function addAdminPortalComment(
+  requirementId: string,
+  projectId: string,
+  versionId: string,
+  body: string
+): Promise<void> {
+  const trimmed = body.trim();
+  if (!trimmed) {
+    return;
+  }
+
+  await withProjectContext(projectId, (tx) =>
+    tx.portalComment.create({
+      data: { projectId, requirementId, body: trimmed, author: "admin" },
+      select: { id: true },
+    })
+  );
+
+  const project = await database.project.findUnique({
+    where: { id: projectId },
+    select: { code: true },
+  });
+
+  if (project) {
+    revalidatePath(`/portal/${project.code}`);
+  }
+  revalidatePath(`/projects/${projectId}/versions/${versionId}/review`);
 }

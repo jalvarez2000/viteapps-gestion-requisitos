@@ -29,6 +29,14 @@ enum EmailType {
   REQUIREMENT_COMMENTS
 }
 
+enum ProjectSize {
+  XS
+  S
+  M
+  L
+  XL
+}
+
 // ─────────────────────────────────────────
 // PROJECT
 // A client application being managed.
@@ -36,6 +44,7 @@ enum EmailType {
 
 model Project {
   id          String   @id @default(cuid())
+  code        String   @unique
   name        String   @unique
   clientEmail String
   description String?
@@ -43,9 +52,14 @@ model Project {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  userSize       ProjectSize?
+  aiSize         ProjectSize?
+  clientPassword String?
+
   versions     Version[]
   emailLogs    EmailLog[]
   reviewCycles ReviewCycle[]
+  resetTokens  PasswordResetToken[]
 }
 
 // ─────────────────────────────────────────
@@ -72,6 +86,7 @@ model Version {
   requirements Requirement[]
   reviewCycles ReviewCycle[]
   attachments  EmailAttachment[]
+  comments     EmailComment[]
 
   @@unique([projectId, number])
   @@index([projectId, status])
@@ -117,9 +132,11 @@ model Requirement {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  version Version          @relation(fields: [versionId], references: [id], onDelete: Cascade)
-  group   RequirementGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  email   EmailLog?        @relation(fields: [sourceEmailId], references: [id])
+  version        Version               @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  group          RequirementGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  email          EmailLog?             @relation(fields: [sourceEmailId], references: [id])
+  portalComments PortalComment[]
+  reactions      RequirementReaction[]
 
   @@index([projectId, status])
   @@index([versionId, status])
@@ -147,6 +164,7 @@ model EmailLog {
   project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   requirements Requirement[]
   attachments  EmailAttachment[]
+  comments     EmailComment[]
 
   @@index([projectId])
 }
@@ -174,6 +192,27 @@ model EmailAttachment {
 }
 
 // ─────────────────────────────────────────
+// EMAIL COMMENT
+// Free-form observations from an email that are
+// not a direct functional requirement.
+// ─────────────────────────────────────────
+
+model EmailComment {
+  id         String   @id @default(cuid())
+  projectId  String
+  versionId  String
+  emailLogId String
+  body       String
+  createdAt  DateTime @default(now())
+
+  emailLog EmailLog @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
+  version  Version  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([emailLogId])
+  @@index([projectId, versionId])
+}
+
+// ─────────────────────────────────────────
 // REVIEW CYCLE
 // One round of manager review per version.
 // Repeats each time the client sends comments.
@@ -192,4 +231,59 @@ model ReviewCycle {
   version Version @relation(fields: [versionId], references: [id], onDelete: Cascade)
 
   @@index([projectId, versionId])
+}
+
+// ─────────────────────────────────────────
+// PASSWORD RESET TOKEN
+// One-time token for portal password reset.
+// ─────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  projectId String
+  token     String    @unique // SHA-256 of the raw token sent to client
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ─────────────────────────────────────────
+// PORTAL COMMENT
+// Comment left by the client on a requirement.
+// ─────────────────────────────────────────
+
+model PortalComment {
+  id            String   @id @default(cuid())
+  projectId     String
+  requirementId String
+  author        String   @default("client") // "admin" | "client"
+  body          String
+  createdAt     DateTime @default(now())
+
+  requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([requirementId])
+  @@index([projectId])
+}
+
+// ─────────────────────────────────────────
+// REQUIREMENT REACTION
+// Emoji reaction by client on a requirement's review comment.
+// ─────────────────────────────────────────
+
+model RequirementReaction {
+  id            String   @id @default(cuid())
+  projectId     String
+  requirementId String
+  emoji         String
+  createdAt     DateTime @default(now())
+
+  requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@unique([requirementId, emoji])
+  @@index([projectId])
 }

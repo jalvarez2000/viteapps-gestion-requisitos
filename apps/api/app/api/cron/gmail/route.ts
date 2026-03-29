@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
             receivedAt: email.receivedAt,
             subject: email.subject,
             threadId: email.threadId,
+            userSize: email.userSize,
           },
         ])
       )

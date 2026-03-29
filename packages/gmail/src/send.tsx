@@ -1,8 +1,13 @@
 import type {
+  PasswordResetEmailProps,
   ReceptionConfirmationEmailProps,
   VersionSummaryEmailProps,
 } from "@repo/email";
-import { renderReceptionConfirmation, renderVersionSummary } from "@repo/email";
+import {
+  renderPasswordReset,
+  renderReceptionConfirmation,
+  renderVersionSummary,
+} from "@repo/email";
 import { getGmailClient } from "./client";
 import { keys } from "./keys";
 
@@ -38,6 +43,28 @@ function buildRawEmail({
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
+}
+
+export async function sendPasswordReset(params: {
+  to: string;
+  props: PasswordResetEmailProps;
+}): Promise<void> {
+  const { GMAIL_TARGET_ADDRESS } = keys();
+  const gmail = getGmailClient();
+
+  const { html, subject } = await renderPasswordReset(params.props);
+
+  const raw = buildRawEmail({
+    from: GMAIL_TARGET_ADDRESS,
+    to: params.to,
+    subject,
+    html,
+  });
+
+  await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw },
+  });
 }
 
 export async function sendVersionSummary(params: {
