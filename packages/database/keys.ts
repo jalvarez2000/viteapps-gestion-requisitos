@@ -4,9 +4,11 @@ import { z } from "zod";
 export const keys = () =>
   createEnv({
     server: {
-      DATABASE_URL: z.url(),
+      // app_user — sin BYPASSRLS, RLS activo. Usado por el runtime de la app.
+      // DATABASE_URL (neondb_owner) solo lo lee prisma.config.ts para migraciones.
+      DATABASE_APP_URL: z.url(),
     },
     runtimeEnv: {
-      DATABASE_URL: process.env.DATABASE_URL,
+      DATABASE_APP_URL: process.env.DATABASE_APP_URL,
     },
   });

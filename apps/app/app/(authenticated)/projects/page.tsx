@@ -6,11 +6,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/design-system/components/ui/card";
-import type { Metadata } from "next";
 import { FolderKanbanIcon } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Proyectos — Gestión de Requisitos" };
+export const metadata: Metadata = {
+  title: "Proyectos — Gestión de Requisitos",
+};
 
 export default async function ProjectsPage() {
   const projects = await database.project.findMany({
@@ -28,8 +30,8 @@ export default async function ProjectsPage() {
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Proyectos</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="font-bold text-2xl tracking-tight">Proyectos</h1>
+        <p className="text-muted-foreground text-sm">
           {projects.length} proyecto(s) registrado(s)
         </p>
       </div>
@@ -37,15 +39,16 @@ export default async function ProjectsPage() {
       {projects.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16">
           <FolderKanbanIcon className="mb-3 h-10 w-10 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Envía un correo con el asunto{" "}
-            <code className="font-mono text-xs">NUEVA APP: NOMBRE</code> para crear el primer proyecto
+            <code className="font-mono text-xs">NUEVA APP: NOMBRE</code> para
+            crear el primer proyecto
           </p>
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Link key={project.id} href={`/projects/${project.id}`}>
+            <Link href={`/projects/${project.id}`} key={project.id}>
               <Card className="cursor-pointer transition-colors hover:border-primary/50">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -60,7 +63,7 @@ export default async function ProjectsPage() {
                       ` · v${project.versions[0].number} · ${project.versions[0]._count.requirements} req.`}
                   </CardDescription>
                   {project.description && (
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                    <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">
                       {project.description}
                     </p>
                   )}
@@ -75,9 +78,23 @@ export default async function ProjectsPage() {
 }
 
 function VersionBadge({ status }: { status: string }) {
-  if (status === "OPEN")
-    return <Badge variant="outline" className="border-green-500 text-green-600">Abierta</Badge>;
-  if (status === "FROZEN")
-    return <Badge variant="outline" className="border-blue-500 text-blue-600">Congelada</Badge>;
-  return <Badge variant="outline" className="border-purple-500 text-purple-600">Publicada</Badge>;
+  if (status === "OPEN") {
+    return (
+      <Badge className="border-green-500 text-green-600" variant="outline">
+        Abierta
+      </Badge>
+    );
+  }
+  if (status === "FROZEN") {
+    return (
+      <Badge className="border-blue-500 text-blue-600" variant="outline">
+        Congelada
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="border-purple-500 text-purple-600" variant="outline">
+      Publicada
+    </Badge>
+  );
 }

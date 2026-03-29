@@ -1,5 +1,9 @@
-export { fetchUnreadRequirementsEmails, markEmailAsProcessed } from './fetch';
-export { parseSubject } from './parser';
-export { sendVersionSummary } from './send';
-export { keys } from './keys';
-export type { ParsedEmail, EmailType } from './types';
+export {
+  fetchAttachmentData,
+  fetchUnreadRequirementsEmails,
+  markEmailAsProcessed,
+} from "./fetch";
+export { keys } from "./keys";
+export { parseSubject } from "./parser";
+export { sendReceptionConfirmation, sendVersionSummary } from "./send";
+export type { EmailType, ParsedAttachment, ParsedEmail } from "./types";

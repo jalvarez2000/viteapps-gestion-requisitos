@@ -24,6 +24,7 @@
     "@repo/storage": "workspace:*",
     "@sentry/nextjs": "^10.42.0",
     "@t3-oss/env-nextjs": "^0.13.10",
+    "@vercel/blob": "^2.3.2",
     "@workflow/ai": "4.1.0-beta.58",
     "import-in-the-middle": "^3.0.0",
     "next": "16.1.6",

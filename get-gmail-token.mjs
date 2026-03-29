@@ -13,10 +13,10 @@
  */
 
 import { createServer } from "http";
-import { createInterface } from "readline";
 
 // ─── FILL THESE IN ───────────────────────────────────────────────────────────
-const CLIENT_ID = "GMAIL_CLIENT_ID_PLACEHOLDER";
+const CLIENT_ID =
+  "GMAIL_CLIENT_ID_PLACEHOLDER";
 const CLIENT_SECRET = "GMAIL_CLIENT_SECRET_PLACEHOLDER";
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -28,20 +28,24 @@ const SCOPES = [
 ].join(" ");
 
 const authUrl =
-  `https://accounts.google.com/o/oauth2/v2/auth` +
+  "https://accounts.google.com/o/oauth2/v2/auth" +
   `?client_id=${encodeURIComponent(CLIENT_ID)}` +
   `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-  `&response_type=code` +
+  "&response_type=code" +
   `&scope=${encodeURIComponent(SCOPES)}` +
-  `&access_type=offline` +
-  `&prompt=consent`;
+  "&access_type=offline" +
+  "&prompt=consent";
 
 console.log("\n📧 Gmail OAuth2 Token Generator\n");
 console.log("1. Open this URL in your browser:\n");
 console.log(authUrl);
-console.log("\n2. Sign in as viteappsbreizh@gmail.com (the app mailbox account).");
+console.log(
+  "\n2. Sign in as viteappsbreizh@gmail.com (the app mailbox account)."
+);
 console.log("3. Grant all requested permissions.");
-console.log("4. You will be redirected to localhost — this script will capture the code.\n");
+console.log(
+  "4. You will be redirected to localhost — this script will capture the code.\n"
+);
 
 // Start a temporary local server to capture the OAuth callback
 const server = createServer(async (req, res) => {
@@ -80,7 +84,10 @@ const server = createServer(async (req, res) => {
   const tokens = await tokenRes.json();
 
   if (tokens.error) {
-    console.error("\n❌ Token exchange error:", tokens.error_description ?? tokens.error);
+    console.error(
+      "\n❌ Token exchange error:",
+      tokens.error_description ?? tokens.error
+    );
     server.close();
     return;
   }
@@ -91,12 +98,12 @@ const server = createServer(async (req, res) => {
   console.log(`GMAIL_CLIENT_SECRET=${CLIENT_SECRET}`);
   console.log(`GMAIL_REFRESH_TOKEN=${tokens.refresh_token}`);
   console.log("\nAlso set:");
-  console.log(`GMAIL_TARGET_ADDRESS=viteappsbreizh@gmail.com\n`);
+  console.log("GMAIL_TARGET_ADDRESS=viteappsbreizh@gmail.com\n");
 
   if (!tokens.refresh_token) {
     console.warn(
       "⚠️  No refresh_token returned. This usually means the account already has a token.\n" +
-      "   Revoke access at https://myaccount.google.com/permissions and run this script again."
+        "   Revoke access at https://myaccount.google.com/permissions and run this script again."
     );
   }
 

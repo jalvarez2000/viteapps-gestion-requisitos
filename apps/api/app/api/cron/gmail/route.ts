@@ -1,9 +1,12 @@
-import { fetchUnreadRequirementsEmails } from '@repo/gmail';
-import { log } from '@repo/observability/log';
-import { parseError } from '@repo/observability/error';
-import { start } from 'workflow/api';
-import { NextRequest, NextResponse } from 'next/server';
-import { processEmailWorkflow } from '@/app/workflows/process-email';
+import {
+  fetchUnreadRequirementsEmails,
+  markEmailAsProcessed,
+} from "@repo/gmail";
+import { parseError } from "@repo/observability/error";
+import { log } from "@repo/observability/log";
+import { type NextRequest, NextResponse } from "next/server";
+import { start } from "workflow/api";
+import { processEmailWorkflow } from "@/app/workflows/process-email";
 
 // Vercel Cron: every minute
 // vercel.json: { "path": "/api/cron/gmail", "schedule": "* * * * *" }
@@ -12,9 +15,9 @@ import { processEmailWorkflow } from '@/app/workflows/process-email';
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
+  const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -25,18 +28,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ processed: 0 });
     }
 
+    // Mark as read immediately — before starting workflows — so the next
+    // cron run doesn't pick them up again while workflows are still running.
+    await Promise.all(
+      emails.map((email) => markEmailAsProcessed(email.messageId))
+    );
+    log.info(`[cron/gmail] marked ${emails.length} email(s) as read`);
+
     const runs = await Promise.all(
       emails.map((email) =>
         start(processEmailWorkflow, [
           {
-            messageId: email.messageId,
-            threadId: email.threadId,
-            subject: email.subject,
-            fromAddress: email.from,
+            appName: email.appName ?? email.from,
+            attachments: email.attachments,
             body: email.body,
+            clientEmail: email.clientEmail,
             emailType: email.type,
-            appName: email.appName!,
+            fromAddress: email.from,
+            messageId: email.messageId,
             receivedAt: email.receivedAt,
+            subject: email.subject,
+            threadId: email.threadId,
           },
         ])
       )

@@ -1,6 +1,6 @@
-import { database, withProjectContext } from '@repo/database';
-import { ToolLoopAgent, tool } from 'ai';
-import { z } from 'zod';
+import { withProjectContext } from "@repo/database";
+import { ToolLoopAgent, tool } from "ai";
+import { z } from "zod";
 
 // ─────────────────────────────────────────────────────────────────
 // Requirements Extraction Agent
@@ -29,12 +29,12 @@ Reglas:
 export function createRequirementsAgent(projectId: string, versionId: string) {
   return new ToolLoopAgent({
     // Routes through AI Gateway automatically
-    model: 'anthropic/claude-sonnet-4.6',
+    model: "anthropic/claude-sonnet-4.6",
     instructions: SYSTEM_PROMPT,
     tools: {
       listExistingGroups: tool({
         description:
-          'Lista los grupos funcionales que ya existen en esta versión para reutilizarlos.',
+          "Lista los grupos funcionales que ya existen en esta versión para reutilizarlos.",
         inputSchema: z.object({}),
         execute: async () => {
           return withProjectContext(projectId, (tx) =>
@@ -47,32 +47,49 @@ export function createRequirementsAgent(projectId: string, versionId: string) {
       }),
 
       createGroup: tool({
-        description: 'Crea un nuevo grupo funcional para agrupar requisitos relacionados.',
+        description:
+          "Crea un nuevo grupo funcional para agrupar requisitos relacionados.",
         inputSchema: z.object({
-          name: z.string().describe('Nombre del área funcional, ej: "Gestión de usuarios"'),
+          name: z
+            .string()
+            .describe('Nombre del área funcional, ej: "Gestión de usuarios"'),
           description: z
             .string()
             .optional()
-            .describe('Descripción breve del área funcional'),
+            .describe("Descripción breve del área funcional"),
         }),
         execute: async ({ name, description }) => {
-          return withProjectContext(projectId, (tx) =>
-            tx.requirementGroup.upsert({
-              where: { versionId_name: { versionId, name } },
-              create: { projectId, versionId, name, description },
-              update: {},
+          return withProjectContext(projectId, async (tx) => {
+            // upsert uses implicit transactions — not supported in HTTP mode
+            const existing = await tx.requirementGroup.findFirst({
+              where: { versionId, name },
               select: { id: true, name: true },
-            })
-          );
+            });
+            if (existing) {
+              return existing;
+            }
+            return tx.requirementGroup.create({
+              data: { projectId, versionId, name, description },
+              select: { id: true, name: true },
+            });
+          });
         },
       }),
 
       createRequirement: tool({
-        description: 'Crea un requisito funcional dentro de un grupo.',
+        description: "Crea un requisito funcional dentro de un grupo.",
         inputSchema: z.object({
-          groupId: z.string().describe('ID del grupo funcional obtenido de createGroup o listExistingGroups'),
-          title: z.string().describe('Título corto del requisito (máximo 10 palabras)'),
-          description: z.string().describe('Descripción detallada del requisito'),
+          groupId: z
+            .string()
+            .describe(
+              "ID del grupo funcional obtenido de createGroup o listExistingGroups"
+            ),
+          title: z
+            .string()
+            .describe("Título corto del requisito (máximo 10 palabras)"),
+          description: z
+            .string()
+            .describe("Descripción detallada del requisito"),
         }),
         execute: async ({ groupId, title, description }) => {
           return withProjectContext(projectId, (tx) =>
@@ -83,7 +100,7 @@ export function createRequirementsAgent(projectId: string, versionId: string) {
                 groupId,
                 title,
                 description,
-                status: 'PENDING',
+                status: "PENDING",
               },
               select: { id: true, title: true },
             })
@@ -112,13 +129,16 @@ export async function extractRequirementsFromEmail({
   });
 
   // Count what was created
-  const [groupCount, reqCount] = await withProjectContext(projectId, async (tx) => {
-    const groups = await tx.requirementGroup.count({ where: { versionId } });
-    const reqs = await tx.requirement.count({
-      where: { versionId, sourceEmailId },
-    });
-    return [groups, reqs];
-  });
+  const [groupCount, reqCount] = await withProjectContext(
+    projectId,
+    async (tx) => {
+      const groups = await tx.requirementGroup.count({ where: { versionId } });
+      const reqs = await tx.requirement.count({
+        where: { versionId, sourceEmailId },
+      });
+      return [groups, reqs];
+    }
+  );
 
   return { groupsCreated: groupCount, requirementsCreated: reqCount };
 }

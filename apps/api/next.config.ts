@@ -4,14 +4,14 @@ import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 import { env } from "@/env";
 
-let nextConfig: NextConfig = withWorkflow(withLogging(config));
+let baseConfig: NextConfig = withLogging(config);
 
 if (env.VERCEL) {
-  nextConfig = withSentry(nextConfig);
+  baseConfig = withSentry(baseConfig);
 }
 
 if (env.ANALYZE === "true") {
-  nextConfig = withAnalyzer(nextConfig);
+  baseConfig = withAnalyzer(baseConfig);
 }
 
-export default nextConfig;
+export default withWorkflow(baseConfig);

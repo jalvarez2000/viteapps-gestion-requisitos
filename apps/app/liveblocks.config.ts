@@ -1,1 +1,2 @@
-export * from "@repo/collaboration/config";
+// Collaboration (Liveblocks) not configured in this project
+export type {} from "@liveblocks/client";

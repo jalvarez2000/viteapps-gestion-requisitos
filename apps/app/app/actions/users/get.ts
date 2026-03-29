@@ -6,6 +6,12 @@ import {
   type OrganizationMembership,
 } from "@repo/auth/server";
 
+type UserInfo = {
+  name: string;
+  picture: string;
+  color: string;
+};
+
 const getName = (user: OrganizationMembership): string | undefined => {
   let name = user.publicUserData?.firstName;
 
@@ -40,14 +46,7 @@ const colors = [
 
 export const getUsers = async (
   userIds: string[]
-): Promise<
-  | {
-      data: Liveblocks["UserMeta"]["info"][];
-    }
-  | {
-      error: unknown;
-    }
-> => {
+): Promise<{ data: UserInfo[] } | { error: unknown }> => {
   try {
     const { orgId } = await auth();
 
@@ -62,7 +61,7 @@ export const getUsers = async (
       limit: 100,
     });
 
-    const data: Liveblocks["UserMeta"]["info"][] = members.data
+    const data: UserInfo[] = members.data
       .filter(
         (user) =>
           user.publicUserData?.userId &&
@@ -71,7 +70,9 @@ export const getUsers = async (
       .map((user) => ({
         name: getName(user) ?? "Unknown user",
         picture: user.publicUserData?.imageUrl ?? "",
-        color: colors[Math.floor(Math.random() * colors.length)],
+        color:
+          colors[Math.floor(Math.random() * colors.length)] ??
+          "var(--color-blue-500)",
       }));
 
     return { data };

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Requirement, RequirementGroup } from "@repo/database";
 import { Badge } from "@repo/design-system/components/ui/badge";
 import { Button } from "@repo/design-system/components/ui/button";
 import {
@@ -9,20 +10,19 @@ import {
   CardTitle,
 } from "@repo/design-system/components/ui/card";
 import { Textarea } from "@repo/design-system/components/ui/textarea";
-import { CheckIcon, XIcon, SendIcon } from "lucide-react";
+import { CheckIcon, SendIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { reviewRequirement, completeReview } from "@/app/actions/requirements";
-import type { Requirement, RequirementGroup } from "@repo/database";
+import { completeReview, reviewRequirement } from "@/app/actions/requirements";
 
 type GroupWithRequirements = RequirementGroup & { requirements: Requirement[] };
 
 interface ReviewPanelProps {
-  groups: GroupWithRequirements[];
-  reviewCycleId: string;
-  projectId: string;
-  versionId: string;
   canComplete: boolean;
+  groups: GroupWithRequirements[];
+  projectId: string;
+  reviewCycleId: string;
+  versionId: string;
 }
 
 export function ReviewPanel({
@@ -45,9 +45,7 @@ export function ReviewPanel({
     reqId: string,
     status: "CONFIRMED" | "NOT_IMPLEMENTABLE"
   ) {
-    startTransition(() =>
-      reviewRequirement(reqId, status, comments[reqId])
-    );
+    startTransition(() => reviewRequirement(reqId, status, comments[reqId]));
   }
 
   async function handleComplete() {
@@ -70,38 +68,37 @@ export function ReviewPanel({
           <CardContent>
             <ul className="flex flex-col gap-3">
               {group.requirements.map((req) => (
-                <li
-                  key={req.id}
-                  className="rounded-lg border p-4"
-                >
+                <li className="rounded-lg border p-4" key={req.id}>
                   <div className="flex items-start gap-3">
                     <RequirementBadge status={req.status} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{req.title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm">{req.title}</p>
+                      <p className="mt-0.5 text-muted-foreground text-xs">
                         {req.description}
                       </p>
                     </div>
                     {req.status === "PENDING" && (
                       <div className="flex shrink-0 gap-1">
                         <Button
-                          size="sm"
-                          variant="outline"
                           className="border-green-500 text-green-600 hover:bg-green-50"
                           disabled={isPending}
                           onClick={() => handleReview(req.id, "CONFIRMED")}
+                          size="sm"
+                          variant="outline"
                         >
-                          <CheckIcon className="h-3 w-3 mr-1" />
+                          <CheckIcon className="mr-1 h-3 w-3" />
                           Confirmar
                         </Button>
                         <Button
-                          size="sm"
-                          variant="outline"
                           className="border-red-400 text-red-600 hover:bg-red-50"
                           disabled={isPending}
-                          onClick={() => handleReview(req.id, "NOT_IMPLEMENTABLE")}
+                          onClick={() =>
+                            handleReview(req.id, "NOT_IMPLEMENTABLE")
+                          }
+                          size="sm"
+                          variant="outline"
                         >
-                          <XIcon className="h-3 w-3 mr-1" />
+                          <XIcon className="mr-1 h-3 w-3" />
                           Rechazar
                         </Button>
                       </div>
@@ -111,14 +108,14 @@ export function ReviewPanel({
                   {/* Comment field — always visible for pending, shown if comment exists for reviewed */}
                   {req.status === "PENDING" && (
                     <Textarea
-                      className="mt-3 text-xs min-h-[60px]"
+                      className="mt-3 min-h-[60px] text-xs"
+                      onChange={(e) => handleComment(req.id, e.target.value)}
                       placeholder="Comentario opcional para el cliente..."
                       value={comments[req.id] ?? ""}
-                      onChange={(e) => handleComment(req.id, e.target.value)}
                     />
                   )}
                   {req.status !== "PENDING" && req.reviewComment && (
-                    <p className="mt-2 text-xs italic text-muted-foreground border-l-2 pl-2">
+                    <p className="mt-2 border-l-2 pl-2 text-muted-foreground text-xs italic">
                       {req.reviewComment}
                     </p>
                   )}
@@ -132,10 +129,10 @@ export function ReviewPanel({
       {/* Complete review button */}
       <div className="sticky bottom-4 flex justify-end">
         <Button
-          size="lg"
+          className="shadow-lg"
           disabled={!canComplete || completing}
           onClick={handleComplete}
-          className="shadow-lg"
+          size="lg"
         >
           <SendIcon className="mr-2 h-4 w-4" />
           {canComplete
@@ -148,9 +145,26 @@ export function ReviewPanel({
 }
 
 function RequirementBadge({ status }: { status: string }) {
-  if (status === "CONFIRMED")
-    return <Badge className="shrink-0 bg-green-100 text-green-700 hover:bg-green-100">Confirmado</Badge>;
-  if (status === "NOT_IMPLEMENTABLE")
-    return <Badge className="shrink-0 bg-red-100 text-red-700 hover:bg-red-100">No implementable</Badge>;
-  return <Badge variant="outline" className="shrink-0 border-amber-400 text-amber-600">Pendiente</Badge>;
+  if (status === "CONFIRMED") {
+    return (
+      <Badge className="shrink-0 bg-green-100 text-green-700 hover:bg-green-100">
+        Confirmado
+      </Badge>
+    );
+  }
+  if (status === "NOT_IMPLEMENTABLE") {
+    return (
+      <Badge className="shrink-0 bg-red-100 text-red-700 hover:bg-red-100">
+        No implementable
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      className="shrink-0 border-amber-400 text-amber-600"
+      variant="outline"
+    >
+      Pendiente
+    </Badge>
+  );
 }

@@ -12,23 +12,23 @@ import {
 } from "@react-email/components";
 
 export interface RequirementSummary {
-  title: string;
   description: string;
   reviewComment?: string | null;
+  title: string;
 }
 
 export interface GroupSummary {
-  name: string;
   confirmed: RequirementSummary[];
+  name: string;
   notImplementable: RequirementSummary[];
 }
 
 export interface VersionSummaryEmailProps {
-  projectName: string;
-  versionNumber: number;
   cycleNumber: number;
   groups: GroupSummary[];
+  projectName: string;
   replySubject: string;
+  versionNumber: number;
 }
 
 export const VersionSummaryEmail = ({
@@ -52,10 +52,10 @@ export const VersionSummaryEmail = ({
           {`Revisión completada — ${projectName} v${versionNumber}`}
         </Preview>
         <Body className="bg-zinc-50 font-sans">
-          <Container className="mx-auto py-12 max-w-2xl">
+          <Container className="mx-auto max-w-2xl py-12">
             <Section className="mt-8 rounded-md bg-zinc-200 p-px">
               <Section className="rounded-[5px] bg-white p-8">
-                <Heading className="mt-0 mb-2 text-2xl font-bold text-zinc-950">
+                <Heading className="mt-0 mb-2 font-bold text-2xl text-zinc-950">
                   Revisión de requisitos completada
                 </Heading>
                 <Text className="m-0 text-zinc-500">
@@ -68,36 +68,38 @@ export const VersionSummaryEmail = ({
                 {/* Summary counters */}
                 <Section className="mb-6 flex gap-6">
                   <Text className="m-0 text-sm">
-                    ✅ <strong>{totalConfirmed}</strong> requisito(s) confirmado(s)
+                    ✅ <strong>{totalConfirmed}</strong> requisito(s)
+                    confirmado(s)
                   </Text>
                   <Text className="m-0 text-sm">
-                    ❌ <strong>{totalNotImplementable}</strong> no implementable(s) en esta versión
+                    ❌ <strong>{totalNotImplementable}</strong> no
+                    implementable(s) en esta versión
                   </Text>
                 </Section>
 
                 {/* Confirmed requirements */}
                 {totalConfirmed > 0 && (
                   <>
-                    <Heading className="mt-0 mb-3 text-lg font-semibold text-green-700">
+                    <Heading className="mt-0 mb-3 font-semibold text-green-700 text-lg">
                       ✅ Requisitos confirmados para v{versionNumber}
                     </Heading>
                     {groups
                       .filter((g) => g.confirmed.length > 0)
                       .map((group) => (
-                        <Section key={group.name} className="mb-4">
-                          <Text className="m-0 mb-2 font-semibold text-zinc-700 text-sm">
+                        <Section className="mb-4" key={group.name}>
+                          <Text className="m-0 mb-2 font-semibold text-sm text-zinc-700">
                             {group.name}
                           </Text>
                           {group.confirmed.map((req) => (
-                            <Section key={req.title} className="mb-2 ml-3">
+                            <Section className="mb-2 ml-3" key={req.title}>
                               <Text className="m-0 text-sm text-zinc-900">
                                 • {req.title}
                               </Text>
-                              <Text className="m-0 text-xs text-zinc-500 ml-2">
+                              <Text className="m-0 ml-2 text-xs text-zinc-500">
                                 {req.description}
                               </Text>
                               {req.reviewComment && (
-                                <Text className="m-0 text-xs italic text-zinc-400 ml-2">
+                                <Text className="m-0 ml-2 text-xs text-zinc-400 italic">
                                   Nota: {req.reviewComment}
                                 </Text>
                               )}
@@ -112,23 +114,23 @@ export const VersionSummaryEmail = ({
                 {totalNotImplementable > 0 && (
                   <>
                     <Hr className="my-4" />
-                    <Heading className="mt-0 mb-3 text-lg font-semibold text-red-700">
+                    <Heading className="mt-0 mb-3 font-semibold text-lg text-red-700">
                       ❌ No incluidos en esta versión
                     </Heading>
                     {groups
                       .filter((g) => g.notImplementable.length > 0)
                       .map((group) => (
-                        <Section key={group.name} className="mb-4">
-                          <Text className="m-0 mb-2 font-semibold text-zinc-700 text-sm">
+                        <Section className="mb-4" key={group.name}>
+                          <Text className="m-0 mb-2 font-semibold text-sm text-zinc-700">
                             {group.name}
                           </Text>
                           {group.notImplementable.map((req) => (
-                            <Section key={req.title} className="mb-2 ml-3">
+                            <Section className="mb-2 ml-3" key={req.title}>
                               <Text className="m-0 text-sm text-zinc-900">
                                 • {req.title}
                               </Text>
                               {req.reviewComment && (
-                                <Text className="m-0 text-xs italic text-zinc-500 ml-2">
+                                <Text className="m-0 ml-2 text-xs text-zinc-500 italic">
                                   Motivo: {req.reviewComment}
                                 </Text>
                               )}
@@ -142,9 +144,10 @@ export const VersionSummaryEmail = ({
                 <Hr className="my-6" />
 
                 <Text className="m-0 text-sm text-zinc-500">
-                  Si desea comentar sobre esta revisión, responda a este correo con el asunto:
+                  Si desea comentar sobre esta revisión, responda a este correo
+                  con el asunto:
                 </Text>
-                <Text className="mt-2 font-mono text-sm font-bold text-zinc-800 bg-zinc-100 p-2 rounded">
+                <Text className="mt-2 rounded bg-zinc-100 p-2 font-bold font-mono text-sm text-zinc-800">
                   {replySubject}
                 </Text>
               </Section>

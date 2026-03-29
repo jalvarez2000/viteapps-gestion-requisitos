@@ -1,5 +1,5 @@
-import { google } from 'googleapis';
-import { keys } from './keys';
+import { google } from "googleapis";
+import { keys } from "./keys";
 
 export function getGmailClient() {
   const env = keys();
@@ -11,5 +11,5 @@ export function getGmailClient() {
 
   auth.setCredentials({ refresh_token: env.GMAIL_REFRESH_TOKEN });
 
-  return google.gmail({ version: 'v1', auth });
+  return google.gmail({ version: "v1", auth });
 }

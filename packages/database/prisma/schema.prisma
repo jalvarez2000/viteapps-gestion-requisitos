@@ -71,6 +71,7 @@ model Version {
   groups       RequirementGroup[]
   requirements Requirement[]
   reviewCycles ReviewCycle[]
+  attachments  EmailAttachment[]
 
   @@unique([projectId, number])
   @@index([projectId, status])
@@ -143,10 +144,33 @@ model EmailLog {
   receivedAt     DateTime
   processedAt    DateTime  @default(now())
 
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   requirements Requirement[]
+  attachments  EmailAttachment[]
 
   @@index([projectId])
+}
+
+// ─────────────────────────────────────────
+// EMAIL ATTACHMENT
+// Binary/text attachments from inbound emails.
+// ─────────────────────────────────────────
+
+model EmailAttachment {
+  id         String   @id @default(cuid())
+  emailLogId String
+  versionId  String
+  filename   String
+  mimeType   String
+  size       Int
+  data       String
+  createdAt  DateTime @default(now())
+
+  emailLog EmailLog @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
+  version  Version  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([emailLogId])
+  @@index([versionId])
 }
 
 // ─────────────────────────────────────────

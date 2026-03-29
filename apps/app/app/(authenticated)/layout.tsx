@@ -2,6 +2,7 @@ import { auth, currentUser } from "@repo/auth/server";
 import { SidebarProvider } from "@repo/design-system/components/ui/sidebar";
 import { showBetaFeature } from "@repo/feature-flags";
 import { secure } from "@repo/security";
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { env } from "@/env";
 import { NotificationsProvider } from "./components/notifications-provider";
@@ -19,6 +20,8 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
   const user = await currentUser();
   const { redirectToSignIn } = await auth();
   const betaFeature = await showBetaFeature();
+  const cookieStore = await cookies();
+  const sidebarOpen = cookieStore.get("sidebar:state")?.value !== "false";
 
   if (!user) {
     return redirectToSignIn();
@@ -26,7 +29,7 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
 
   return (
     <NotificationsProvider userId={user.id}>
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={sidebarOpen}>
         <GlobalSidebar>
           {betaFeature && (
             <div className="m-4 rounded-full bg-blue-500 p-1.5 text-center text-sm text-white">

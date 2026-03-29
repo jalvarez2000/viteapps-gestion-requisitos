@@ -12,7 +12,7 @@ interface RootLayoutProperties {
 
 const RootLayout = ({ children }: RootLayoutProperties) => (
   <html className={fonts} lang="en" suppressHydrationWarning>
-    <body>
+    <body suppressHydrationWarning>
       <AnalyticsProvider>
         <DesignSystemProvider
           helpUrl={env.NEXT_PUBLIC_DOCS_URL}

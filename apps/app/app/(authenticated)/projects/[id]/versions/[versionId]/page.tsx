@@ -8,8 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/design-system/components/ui/card";
-import type { Metadata } from "next";
 import { ChevronRightIcon } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -23,7 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     where: { id: versionId },
     include: { project: { select: { name: true } } },
   });
-  return { title: version ? `v${version.number} — ${version.project.name}` : "Versión" };
+  return {
+    title: version ? `v${version.number} — ${version.project.name}` : "Versión",
+  };
 }
 
 export default async function VersionPage({ params }: Props) {
@@ -48,15 +50,22 @@ export default async function VersionPage({ params }: Props) {
     },
   });
 
-  if (!version) notFound();
+  if (!version) {
+    notFound();
+  }
 
-  const totalReqs = version.groups.reduce((acc, g) => acc + g.requirements.length, 0);
+  const totalReqs = version.groups.reduce(
+    (acc, g) => acc + g.requirements.length,
+    0
+  );
   const confirmed = version.groups.reduce(
-    (acc, g) => acc + g.requirements.filter((r) => r.status === "CONFIRMED").length,
+    (acc, g) =>
+      acc + g.requirements.filter((r) => r.status === "CONFIRMED").length,
     0
   );
   const pending = version.groups.reduce(
-    (acc, g) => acc + g.requirements.filter((r) => r.status === "PENDING").length,
+    (acc, g) =>
+      acc + g.requirements.filter((r) => r.status === "PENDING").length,
     0
   );
   const hasPendingReview = version.reviewCycles.length > 0;
@@ -64,19 +73,25 @@ export default async function VersionPage({ params }: Props) {
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-        <Link href="/projects" className="hover:text-foreground">Proyectos</Link>
+      <nav className="flex items-center gap-1 text-muted-foreground text-sm">
+        <Link className="hover:text-foreground" href="/projects">
+          Proyectos
+        </Link>
         <ChevronRightIcon className="h-3 w-3" />
-        <Link href={`/projects/${id}`} className="hover:text-foreground">{version.project.name}</Link>
+        <Link className="hover:text-foreground" href={`/projects/${id}`}>
+          {version.project.name}
+        </Link>
         <ChevronRightIcon className="h-3 w-3" />
-        <span className="text-foreground font-medium">v{version.number}</span>
+        <span className="font-medium text-foreground">v{version.number}</span>
       </nav>
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">v{version.number}</h1>
-          {version.tagName && <span className="text-muted-foreground">({version.tagName})</span>}
+          <h1 className="font-bold text-2xl">v{version.number}</h1>
+          {version.tagName && (
+            <span className="text-muted-foreground">({version.tagName})</span>
+          )}
           <VersionBadge status={version.status} />
         </div>
         {hasPendingReview && (
@@ -91,14 +106,22 @@ export default async function VersionPage({ params }: Props) {
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Total requisitos" value={totalReqs} />
-        <StatCard label="Pendientes" value={pending} className="text-amber-500" />
-        <StatCard label="Confirmados" value={confirmed} className="text-green-600" />
+        <StatCard
+          className="text-amber-500"
+          label="Pendientes"
+          value={pending}
+        />
+        <StatCard
+          className="text-green-600"
+          label="Confirmados"
+          value={confirmed}
+        />
       </div>
 
       {/* Requirements by group */}
       {version.groups.length === 0 ? (
         <Card className="py-10 text-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Aún no hay requisitos en esta versión.
           </p>
         </Card>
@@ -116,17 +139,17 @@ export default async function VersionPage({ params }: Props) {
                 <ul className="flex flex-col gap-2">
                   {group.requirements.map((req) => (
                     <li
-                      key={req.id}
                       className="flex items-start gap-3 rounded-md border p-3"
+                      key={req.id}
                     >
                       <RequirementBadge status={req.status} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{req.title}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm">{req.title}</p>
+                        <p className="mt-0.5 text-muted-foreground text-xs">
                           {req.description}
                         </p>
                         {req.reviewComment && (
-                          <p className="mt-1 text-xs italic text-muted-foreground">
+                          <p className="mt-1 text-muted-foreground text-xs italic">
                             Nota: {req.reviewComment}
                           </p>
                         )}
@@ -163,17 +186,48 @@ function StatCard({
 }
 
 function VersionBadge({ status }: { status: string }) {
-  if (status === "OPEN")
-    return <Badge variant="outline" className="border-green-500 text-green-600">Abierta</Badge>;
-  if (status === "FROZEN")
-    return <Badge variant="outline" className="border-blue-500 text-blue-600">Congelada</Badge>;
-  return <Badge variant="outline" className="border-purple-500 text-purple-600">Publicada</Badge>;
+  if (status === "OPEN") {
+    return (
+      <Badge className="border-green-500 text-green-600" variant="outline">
+        Abierta
+      </Badge>
+    );
+  }
+  if (status === "FROZEN") {
+    return (
+      <Badge className="border-blue-500 text-blue-600" variant="outline">
+        Congelada
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="border-purple-500 text-purple-600" variant="outline">
+      Publicada
+    </Badge>
+  );
 }
 
 function RequirementBadge({ status }: { status: string }) {
-  if (status === "CONFIRMED")
-    return <Badge className="shrink-0 bg-green-100 text-green-700 hover:bg-green-100">Confirmado</Badge>;
-  if (status === "NOT_IMPLEMENTABLE")
-    return <Badge className="shrink-0 bg-red-100 text-red-700 hover:bg-red-100">No implementable</Badge>;
-  return <Badge variant="outline" className="shrink-0 border-amber-400 text-amber-600">Pendiente</Badge>;
+  if (status === "CONFIRMED") {
+    return (
+      <Badge className="shrink-0 bg-green-100 text-green-700 hover:bg-green-100">
+        Confirmado
+      </Badge>
+    );
+  }
+  if (status === "NOT_IMPLEMENTABLE") {
+    return (
+      <Badge className="shrink-0 bg-red-100 text-red-700 hover:bg-red-100">
+        No implementable
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      className="shrink-0 border-amber-400 text-amber-600"
+      variant="outline"
+    >
+      Pendiente
+    </Badge>
+  );
 }

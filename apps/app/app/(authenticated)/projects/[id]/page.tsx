@@ -3,14 +3,13 @@ import { Badge } from "@repo/design-system/components/ui/badge";
 import { Button } from "@repo/design-system/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@repo/design-system/components/ui/card";
 import { Separator } from "@repo/design-system/components/ui/separator";
-import type { Metadata } from "next";
 import { ChevronRightIcon, MailIcon } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { VersionActions } from "./components/version-actions";
@@ -21,8 +20,13 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const project = await database.project.findUnique({ where: { id }, select: { name: true } });
-  return { title: project ? `${project.name} — Gestión de Requisitos` : "Proyecto" };
+  const project = await database.project.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  return {
+    title: project ? `${project.name} — Gestión de Requisitos` : "Proyecto",
+  };
 }
 
 export default async function ProjectPage({ params }: Props) {
@@ -46,27 +50,33 @@ export default async function ProjectPage({ params }: Props) {
     },
   });
 
-  if (!project) notFound();
+  if (!project) {
+    notFound();
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-        <Link href="/projects" className="hover:text-foreground">Proyectos</Link>
+      <nav className="flex items-center gap-1 text-muted-foreground text-sm">
+        <Link className="hover:text-foreground" href="/projects">
+          Proyectos
+        </Link>
         <ChevronRightIcon className="h-3 w-3" />
-        <span className="text-foreground font-medium">{project.name}</span>
+        <span className="font-medium text-foreground">{project.name}</span>
       </nav>
 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
-          <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+          <h1 className="font-bold text-2xl tracking-tight">{project.name}</h1>
+          <div className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
             <MailIcon className="h-3 w-3" />
             <span>{project.clientEmail || "Sin email de cliente"}</span>
           </div>
           {project.description && (
-            <p className="mt-2 text-sm text-muted-foreground">{project.description}</p>
+            <p className="mt-2 text-muted-foreground text-sm">
+              {project.description}
+            </p>
           )}
         </div>
       </div>
@@ -78,8 +88,9 @@ export default async function ProjectPage({ params }: Props) {
         <h2 className="mb-4 font-semibold">Versiones</h2>
         {project.versions.length === 0 ? (
           <Card className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              No hay versiones. Se creará la primera al recibir el primer email de requisitos.
+            <p className="text-muted-foreground text-sm">
+              No hay versiones. Se creará la primera al recibir el primer email
+              de requisitos.
             </p>
           </Card>
         ) : (
@@ -97,14 +108,17 @@ export default async function ProjectPage({ params }: Props) {
                         <CardTitle className="text-base">
                           v{version.number}
                           {version.tagName && (
-                            <span className="ml-2 text-muted-foreground font-normal text-sm">
+                            <span className="ml-2 font-normal text-muted-foreground text-sm">
                               ({version.tagName})
                             </span>
                           )}
                         </CardTitle>
                         <VersionBadge status={version.status} />
                         {hasPendingReview && (
-                          <Badge variant="outline" className="border-amber-400 text-amber-600">
+                          <Badge
+                            className="border-amber-400 text-amber-600"
+                            variant="outline"
+                          >
                             Revisión pendiente
                           </Badge>
                         )}
@@ -112,7 +126,9 @@ export default async function ProjectPage({ params }: Props) {
                       <div className="flex items-center gap-2">
                         {hasPendingReview && (
                           <Button asChild size="sm">
-                            <Link href={`/projects/${id}/versions/${version.id}/review`}>
+                            <Link
+                              href={`/projects/${id}/versions/${version.id}/review`}
+                            >
                               Revisar requisitos
                             </Link>
                           </Button>
@@ -124,15 +140,18 @@ export default async function ProjectPage({ params }: Props) {
                         </Button>
                         <VersionActions
                           projectId={id}
-                          versionId={version.id}
                           status={version.status}
+                          versionId={version.id}
                         />
                       </div>
                     </div>
                     <CardDescription>
-                      {version._count.groups} grupo(s) · {version._count.requirements} requisito(s)
-                      {version.frozenAt && ` · Congelada ${new Date(version.frozenAt).toLocaleDateString("es-ES")}`}
-                      {version.taggedAt && ` · Publicada ${new Date(version.taggedAt).toLocaleDateString("es-ES")}`}
+                      {version._count.groups} grupo(s) ·{" "}
+                      {version._count.requirements} requisito(s)
+                      {version.frozenAt &&
+                        ` · Congelada ${new Date(version.frozenAt).toLocaleDateString("es-ES")}`}
+                      {version.taggedAt &&
+                        ` · Publicada ${new Date(version.taggedAt).toLocaleDateString("es-ES")}`}
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -146,9 +165,23 @@ export default async function ProjectPage({ params }: Props) {
 }
 
 function VersionBadge({ status }: { status: string }) {
-  if (status === "OPEN")
-    return <Badge variant="outline" className="border-green-500 text-green-600">Abierta</Badge>;
-  if (status === "FROZEN")
-    return <Badge variant="outline" className="border-blue-500 text-blue-600">Congelada</Badge>;
-  return <Badge variant="outline" className="border-purple-500 text-purple-600">Publicada</Badge>;
+  if (status === "OPEN") {
+    return (
+      <Badge className="border-green-500 text-green-600" variant="outline">
+        Abierta
+      </Badge>
+    );
+  }
+  if (status === "FROZEN") {
+    return (
+      <Badge className="border-blue-500 text-blue-600" variant="outline">
+        Congelada
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="border-purple-500 text-purple-600" variant="outline">
+      Publicada
+    </Badge>
+  );
 }

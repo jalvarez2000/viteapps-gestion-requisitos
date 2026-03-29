@@ -1,8 +1,8 @@
 "use server";
 
 import { database } from "@repo/database";
-import { sendVersionSummary } from "@repo/gmail";
 import type { GroupSummary } from "@repo/email";
+import { sendVersionSummary } from "@repo/gmail";
 import { revalidatePath } from "next/cache";
 
 export async function reviewRequirement(

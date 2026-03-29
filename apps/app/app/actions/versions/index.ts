@@ -37,7 +37,9 @@ export async function reopenVersion(projectId: string, versionId: string) {
   });
 
   if (!version || version.status !== "FROZEN") {
-    throw new Error("Solo se pueden reabrir versiones congeladas (no publicadas)");
+    throw new Error(
+      "Solo se pueden reabrir versiones congeladas (no publicadas)"
+    );
   }
 
   await database.version.update({
@@ -58,7 +60,7 @@ export async function freezeAndTagVersion(
     select: { status: true, number: true, projectId: true },
   });
 
-  if (!version || !["OPEN", "FROZEN"].includes(version.status)) {
+  if (!(version && ["OPEN", "FROZEN"].includes(version.status))) {
     throw new Error("Solo se pueden etiquetar versiones abiertas o congeladas");
   }
 

@@ -57,6 +57,29 @@
         "uriFormat": "%s",
         "webRoot": "${workspaceFolder}"
       }
+    },
+    {
+      "name": "API: debug server-side",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "NODE_OPTIONS='--inspect' bun --bun next dev -p 3002",
+      "cwd": "${workspaceFolder}/apps/api"
+    },
+    {
+      "name": "API: attach debugger",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "cwd": "${workspaceFolder}/apps/api"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "API: start + attach",
+      "configurations": ["API: debug server-side", "API: attach debugger"],
+      "stopAll": true
     }
   ]
 }

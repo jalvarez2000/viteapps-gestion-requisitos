@@ -1,43 +1,57 @@
-import { extractRequirementsFromEmail } from '@repo/ai';
-import { database } from '@repo/database';
-import { markEmailAsProcessed } from '@repo/gmail';
-import type { EmailType } from '@repo/gmail';
-import { FatalError } from 'workflow';
+import type { EmailType as DbEmailType } from "@repo/database/generated/enums";
+import type { EmailType, ParsedAttachment } from "@repo/gmail";
+import { FatalError } from "workflow";
 
 // ─────────────────────────────────────────────────────────────────
 // Step functions — full Node.js access, retryable, results cached
+// All Node.js-dependent imports (Prisma, Gmail) are dynamic so the
+// WDK bundler doesn't try to include them in the workflow scope.
 // ─────────────────────────────────────────────────────────────────
 
-async function resolveProject(appName: string, emailType: EmailType, fromAddress: string) {
-  'use step';
+async function resolveProject(
+  appName: string,
+  emailType: EmailType,
+  clientEmail: string
+) {
+  "use step";
 
-  if (emailType === 'NEW_APP') {
-    // Create project + initial version v1
-    const project = await database.project.create({
-      data: {
-        name: appName,
-        clientEmail: fromAddress,
-        versions: {
-          create: { number: 1, status: 'OPEN' },
-        },
-      },
-      include: { versions: true },
+  const { database } = await import("@repo/database");
+
+  if (emailType === "NEW_APP") {
+    let project = await database.project.findUnique({
+      where: { name: appName },
     });
+    if (!project) {
+      project = await database.project.create({
+        data: { name: appName, clientEmail },
+      });
+    }
+
+    let version = await database.version.findFirst({
+      where: { projectId: project.id },
+      orderBy: { number: "desc" },
+    });
+    if (!version) {
+      version = await database.version.create({
+        data: { projectId: project.id, number: 1, status: "OPEN" },
+      });
+    }
 
     return {
       projectId: project.id,
-      versionId: project.versions[0].id,
-      isNew: true,
+      versionId: version.id,
+      projectName: project.name,
+      versionNumber: version.number,
+      clientEmail: project.clientEmail,
     };
   }
 
-  // NEW_REQUIREMENTS or REQUIREMENT_COMMENTS — find existing project
   const project = await database.project.findUnique({
     where: { name: appName },
     include: {
       versions: {
-        where: { status: 'OPEN' },
-        orderBy: { number: 'desc' },
+        where: { status: "OPEN" },
+        orderBy: { number: "desc" },
         take: 1,
       },
     },
@@ -58,7 +72,9 @@ async function resolveProject(appName: string, emailType: EmailType, fromAddress
   return {
     projectId: project.id,
     versionId: project.versions[0].id,
-    isNew: false,
+    projectName: project.name,
+    versionNumber: project.versions[0].number,
+    clientEmail: project.clientEmail,
   };
 }
 
@@ -69,11 +85,21 @@ async function logEmail(params: {
   subject: string;
   fromAddress: string;
   body: string;
-  emailType: EmailType;
+  emailType: DbEmailType;
   appName: string;
   receivedAt: Date;
 }) {
-  'use step';
+  "use step";
+
+  const { database } = await import("@repo/database");
+
+  const existing = await database.emailLog.findUnique({
+    where: { gmailMessageId: params.messageId },
+    select: { id: true },
+  });
+  if (existing) {
+    return existing.id;
+  }
 
   const log = await database.emailLog.create({
     data: {
@@ -93,24 +119,69 @@ async function logEmail(params: {
   return log.id;
 }
 
+async function saveAttachments(params: {
+  messageId: string;
+  emailLogId: string;
+  versionId: string;
+  attachments: ParsedAttachment[];
+}): Promise<string[]> {
+  "use step";
+
+  if (!params.attachments.length) {
+    return [];
+  }
+
+  const { database } = await import("@repo/database");
+  const { fetchAttachmentData } = await import("@repo/gmail");
+
+  const savedTexts: string[] = [];
+
+  for (const att of params.attachments) {
+    const data = await fetchAttachmentData(params.messageId, att.attachmentId);
+
+    await database.emailAttachment.create({
+      data: {
+        emailLogId: params.emailLogId,
+        versionId: params.versionId,
+        filename: att.filename,
+        mimeType: att.mimeType,
+        size: att.size,
+        data,
+      },
+    });
+
+    if (
+      att.mimeType.startsWith("text/") ||
+      att.mimeType === "application/json"
+    ) {
+      const text = Buffer.from(data, "base64").toString("utf-8");
+      savedTexts.push(`\n\n--- Adjunto: ${att.filename} ---\n${text}`);
+    }
+  }
+
+  return savedTexts;
+}
+
 async function runExtractionAgent(params: {
   projectId: string;
   versionId: string;
   emailBody: string;
   sourceEmailId: string;
 }) {
-  'use step';
+  "use step";
 
+  const { extractRequirementsFromEmail } = await import("@repo/ai");
   return extractRequirementsFromEmail(params);
 }
 
 async function openReviewCycle(projectId: string, versionId: string) {
-  'use step';
+  "use step";
 
-  // Get current cycle number for this version
+  const { database } = await import("@repo/database");
+
   const lastCycle = await database.reviewCycle.findFirst({
     where: { versionId },
-    orderBy: { cycleNumber: 'desc' },
+    orderBy: { cycleNumber: "desc" },
     select: { cycleNumber: true },
   });
 
@@ -123,8 +194,44 @@ async function openReviewCycle(projectId: string, versionId: string) {
   });
 }
 
+async function sendConfirmation(params: {
+  to: string;
+  projectId: string;
+  versionId: string;
+  projectName: string;
+  versionNumber: number;
+  attachmentCount: number;
+}) {
+  "use step";
+
+  const { database } = await import("@repo/database");
+  const { sendReceptionConfirmation } = await import("@repo/gmail");
+
+  const requirements = await database.requirement.findMany({
+    where: { versionId: params.versionId, projectId: params.projectId },
+    include: { group: { select: { name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  await sendReceptionConfirmation({
+    to: params.to,
+    props: {
+      projectName: params.projectName,
+      versionNumber: params.versionNumber,
+      attachmentCount: params.attachmentCount,
+      replySubject: `COMENTARIOS A REQUISITOS VERSION EN CURSO: ${params.projectName}`,
+      requirements: requirements.map((r) => ({
+        group: r.group.name,
+        title: r.title,
+        description: r.description,
+      })),
+    },
+  });
+}
+
 async function markProcessed(messageId: string) {
-  'use step';
+  "use step";
+  const { markEmailAsProcessed } = await import("@repo/gmail");
   await markEmailAsProcessed(messageId);
 }
 
@@ -133,25 +240,24 @@ async function markProcessed(messageId: string) {
 // ─────────────────────────────────────────────────────────────────
 
 export interface ProcessEmailInput {
-  messageId: string;
-  threadId: string;
-  subject: string;
-  fromAddress: string;
-  body: string;
-  emailType: EmailType;
   appName: string;
+  attachments: ParsedAttachment[];
+  body: string;
+  clientEmail: string; // Email del cliente extraído del formulario
+  emailType: EmailType;
+  fromAddress: string;
+  messageId: string;
   receivedAt: Date;
+  subject: string;
+  threadId: string;
 }
 
 export async function processEmailWorkflow(input: ProcessEmailInput) {
-  'use workflow';
+  "use workflow";
 
   // 1. Resolve (or create) the project and target version
-  const { projectId, versionId } = await resolveProject(
-    input.appName,
-    input.emailType,
-    input.fromAddress
-  );
+  const { projectId, versionId, projectName, versionNumber } =
+    await resolveProject(input.appName, input.emailType, input.clientEmail);
 
   // 2. Persist the email for audit trail
   const emailLogId = await logEmail({
@@ -161,23 +267,42 @@ export async function processEmailWorkflow(input: ProcessEmailInput) {
     subject: input.subject,
     fromAddress: input.fromAddress,
     body: input.body,
-    emailType: input.emailType,
+    emailType: input.emailType as DbEmailType,
     appName: input.appName,
     receivedAt: input.receivedAt,
   });
 
-  // 3. Run the AI agent to extract and persist requirements
+  // 3. Download and save attachments; get text content from text-based files
+  const attachmentTexts = await saveAttachments({
+    messageId: input.messageId,
+    emailLogId,
+    versionId,
+    attachments: input.attachments,
+  });
+
+  // 4. Run the AI agent — include attachment text so it extracts requirements from files too
+  const fullBody = input.body + attachmentTexts.join("");
   await runExtractionAgent({
     projectId,
     versionId,
-    emailBody: input.body,
+    emailBody: fullBody,
     sourceEmailId: emailLogId,
   });
 
-  // 4. Open a new review cycle so the manager knows there's work to do
+  // 5. Open a new review cycle so the manager knows there's work to do
   await openReviewCycle(projectId, versionId);
 
-  // 5. Mark email as processed in Gmail
+  // 6. Send confirmation email with the extracted requirements table
+  await sendConfirmation({
+    to: input.clientEmail,
+    projectId,
+    versionId,
+    projectName,
+    versionNumber,
+    attachmentCount: input.attachments.length,
+  });
+
+  // 7. Mark email as processed in Gmail
   await markProcessed(input.messageId);
 
   return { projectId, versionId };

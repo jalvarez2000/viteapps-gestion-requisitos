@@ -1,7 +1,15 @@
-import { renderVersionSummary } from '@repo/email';
-import type { VersionSummaryEmailProps } from '@repo/email';
-import { getGmailClient } from './client';
-import { keys } from './keys';
+import type {
+  ReceptionConfirmationEmailProps,
+  VersionSummaryEmailProps,
+} from "@repo/email";
+import { renderReceptionConfirmation, renderVersionSummary } from "@repo/email";
+import { getGmailClient } from "./client";
+import { keys } from "./keys";
+
+function encodeSubject(subject: string): string {
+  // RFC 2047 encoded-word: required for non-ASCII characters in email headers
+  return `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
+}
 
 function buildRawEmail({
   from,
@@ -17,19 +25,19 @@ function buildRawEmail({
   const message = [
     `From: ${from}`,
     `To: ${to}`,
-    `Subject: ${subject}`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=utf-8',
-    '',
+    `Subject: ${encodeSubject(subject)}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/html; charset=utf-8",
+    "",
     html,
-  ].join('\r\n');
+  ].join("\r\n");
 
   // Gmail API requires base64url encoding
   return Buffer.from(message)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 export async function sendVersionSummary(params: {
@@ -49,7 +57,29 @@ export async function sendVersionSummary(params: {
   });
 
   await gmail.users.messages.send({
-    userId: 'me',
+    userId: "me",
+    requestBody: { raw },
+  });
+}
+
+export async function sendReceptionConfirmation(params: {
+  to: string;
+  props: ReceptionConfirmationEmailProps;
+}): Promise<void> {
+  const { GMAIL_TARGET_ADDRESS } = keys();
+  const gmail = getGmailClient();
+
+  const { html, subject } = await renderReceptionConfirmation(params.props);
+
+  const raw = buildRawEmail({
+    from: GMAIL_TARGET_ADDRESS,
+    to: params.to,
+    subject,
+    html,
+  });
+
+  await gmail.users.messages.send({
+    userId: "me",
     requestBody: { raw },
   });
 }
