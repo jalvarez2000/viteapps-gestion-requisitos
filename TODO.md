@@ -56,34 +56,27 @@ El token caduca en ~24h. Renovar con `vercel env pull .env.local --yes` cuando e
 
 **Proyecto afectado:** `gestion-requisitos-api`
 
-Las credenciales de Gmail ya están obtenidas (script `get-gmail-token.mjs` ejecutado).
-Añadir a Vercel producción y preview:
+Credenciales en Google Cloud Console → proyecto "Gestor Requisitos ViteApps" → Credentials.
+Si el refresh token no está guardado, ejecutar `node get-gmail-token.mjs` con las variables de entorno:
 
 ```bash
-cd apps/api
-
-vercel env add GMAIL_CLIENT_ID production --value "GMAIL_CLIENT_ID_PLACEHOLDER" --yes
-vercel env add GMAIL_CLIENT_SECRET production --value "GMAIL_CLIENT_SECRET_PLACEHOLDER" --sensitive --yes
-vercel env add GMAIL_REFRESH_TOKEN production --value "<EL_REFRESH_TOKEN_OBTENIDO>" --sensitive --yes
+export GMAIL_CLIENT_ID="<ver Google Cloud Console>"
+export GMAIL_CLIENT_SECRET="<ver Google Cloud Console>"
+node get-gmail-token.mjs
 ```
 
-> ⚠️ El refresh token se obtuvo al ejecutar `get-gmail-token.mjs`. Si no se guardó,
-> revocar acceso en https://myaccount.google.com/permissions y ejecutar el script de nuevo.
+Añadir a Vercel (el script `ejecucion/setup-vercel-env.sh` lo hace automáticamente).
 
 Cuenta Gmail: `viteappsbreizh@gmail.com`
 Google Cloud Project: `Gestor Requisitos ViteApps`
-Client ID: `GMAIL_CLIENT_ID_PLACEHOLDER`
 
 ---
 
-## 4. GitHub + Deploy a Vercel
+## 4. Deploy a Vercel — Staging + Producción
 
-### 4.1 Crear repositorio GitHub
+### 4.1 Crear repositorio GitHub (si no existe)
 
 ```bash
-cd /Users/javier/Desktop/Personal/viteapps-projects/gestionRequisitos/gestion-requisitos
-
-# Crear repo privado y hacer push
 gh repo create viteappsbreizh/gestion-requisitos --private --source=. --push
 ```
 
@@ -93,62 +86,88 @@ En el dashboard de Vercel, para cada proyecto:
 - `gestion-requisitos-app` → Settings → Git → Connect → repo `gestion-requisitos` → Root: `apps/app`
 - `gestion-requisitos-api` → Settings → Git → Connect → repo `gestion-requisitos` → Root: `apps/api`
 
-### 4.3 Configurar Root Directory en Vercel
+### 4.3 Estrategia de ramas
 
-Cada proyecto Vercel debe tener su `Root Directory` configurado:
+| Rama git | Vercel target | Base de datos Neon |
+|----------|---------------|--------------------|
+| `main`    | **production** | branch `production` (ep-nameless-term-alppqd65) |
+| `staging` | **preview**    | branch `staging`    (ep-damp-rice-aljp6evx) |
+| Otras ramas / PRs | preview | branch `staging` (mismas vars de preview) |
 
-| Proyecto Vercel | Root Directory |
-|-----------------|----------------|
-| gestion-requisitos-app | `apps/app` |
-| gestion-requisitos-api | `apps/api` |
+### 4.4 Configurar variables de entorno
+
+**Antes de ejecutar el script, exportar:**
+
+```bash
+export DB_STAGING_APP="postgresql://app_user:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+export DB_PRODUCTION_APP="postgresql://app_user:<PASSWORD>@ep-nameless-term-alppqd65.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+export CLERK_PUBLISHABLE_STAGING="pk_test_..."   # Clerk Dashboard
+export CLERK_SECRET_STAGING="sk_test_..."
+export CLERK_PUBLISHABLE_PRODUCTION="pk_live_..."
+export CLERK_SECRET_PRODUCTION="sk_live_..."
+export GMAIL_CLIENT_ID="<Google Cloud Console>"
+export GMAIL_CLIENT_SECRET="<Google Cloud Console>"
+export GMAIL_REFRESH_TOKEN="<ejecutar get-gmail-token.mjs>"
+export CRON_SECRET=$(openssl rand -hex 32)
+
+# Ejecutar:
+./ejecucion/setup-vercel-env.sh all
+```
+
+### 4.5 Pasos post-script (manuales en Vercel Dashboard)
+
+1. **AI Gateway**: `gestion-requisitos-api` → Settings → AI → Enable
+   Luego: `cd apps/api && vercel env pull .env.local` para `VERCEL_OIDC_TOKEN` local
+2. **Vercel Blob**: Marketplace → Storage → Create Blob → asociar a `gestion-requisitos-api`
+
+### 4.6 Variables auto-provisionadas por Vercel (no requieren configuración manual)
+
+| Variable | Origen |
+|----------|--------|
+| `VERCEL_OIDC_TOKEN` | AI Gateway (al habilitarlo) |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob Marketplace |
+| `VERCEL`, `VERCEL_ENV`, `VERCEL_URL` | Inyectadas en cada build |
 
 ---
 
 ## 5. Variables de entorno locales — resumen completo
 
+Los valores reales están en: Google Cloud Console, Clerk Dashboard, Neon Console.
+**Nunca commitear estos archivos** (están en `.gitignore`).
+
 Crear `apps/api/.env.local`:
 ```bash
-# Base de datos (staging para desarrollo)
-DATABASE_URL="postgresql://neondb_owner:NEON_PASSWORD_PLACEHOLDER@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
-
-# Auth (Clerk — test keys)
-CLERK_SECRET_KEY="CLERK_SECRET_KEY_PLACEHOLDER"
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="CLERK_PUBLISHABLE_KEY_PLACEHOLDER"
+DATABASE_URL="postgresql://neondb_owner:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+DATABASE_APP_URL="postgresql://app_user:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+CLERK_SECRET_KEY="sk_test_..."
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
 NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
 NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
-
-# Gmail
-GMAIL_CLIENT_ID="GMAIL_CLIENT_ID_PLACEHOLDER"
-GMAIL_CLIENT_SECRET="GMAIL_CLIENT_SECRET_PLACEHOLDER"
-GMAIL_REFRESH_TOKEN="<COMPLETAR>"
+GMAIL_CLIENT_ID="<Google Cloud Console>"
+GMAIL_CLIENT_SECRET="<Google Cloud Console>"
+GMAIL_REFRESH_TOKEN="<ejecutar get-gmail-token.mjs>"
 GMAIL_TARGET_ADDRESS="viteappsbreizh@gmail.com"
-
-# Cron
-CRON_SECRET="CRON_SECRET_PLACEHOLDER"
-
-# AI Gateway (ejecutar: vercel env pull .env.local)
-# VERCEL_OIDC_TOKEN=  # auto-provisioned por vercel env pull
-
-# Blob (pendiente)
+CRON_SECRET="<openssl rand -hex 32>"
+# VERCEL_OIDC_TOKEN=  # auto: vercel env pull .env.local
 # BLOB_READ_WRITE_TOKEN=
 ```
 
 Crear `apps/app/.env.local`:
 ```bash
-# Base de datos (staging para desarrollo)
-DATABASE_URL="postgresql://neondb_owner:NEON_PASSWORD_PLACEHOLDER@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
-
-# Auth (Clerk — test keys)
-CLERK_SECRET_KEY="CLERK_SECRET_KEY_PLACEHOLDER"
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="CLERK_PUBLISHABLE_KEY_PLACEHOLDER"
+DATABASE_URL="postgresql://neondb_owner:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+DATABASE_APP_URL="postgresql://app_user:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+CLERK_SECRET_KEY="sk_test_..."
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
 NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
 NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
-
-# Gmail (para envío de emails desde completeReview)
-GMAIL_CLIENT_ID="GMAIL_CLIENT_ID_PLACEHOLDER"
-GMAIL_CLIENT_SECRET="GMAIL_CLIENT_SECRET_PLACEHOLDER"
-GMAIL_REFRESH_TOKEN="<COMPLETAR>"
+GMAIL_CLIENT_ID="<Google Cloud Console>"
+GMAIL_CLIENT_SECRET="<Google Cloud Console>"
+GMAIL_REFRESH_TOKEN="<ejecutar get-gmail-token.mjs>"
 GMAIL_TARGET_ADDRESS="viteappsbreizh@gmail.com"
+PORTAL_SESSION_SECRET="<openssl rand -hex 32>"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_WEB_URL="http://localhost:3000"
+NEXT_PUBLIC_API_URL="http://localhost:3002"
 ```
 
 ---

@@ -14,10 +14,11 @@
 
 import { createServer } from "http";
 
-// ─── FILL THESE IN ───────────────────────────────────────────────────────────
+// ─── FILL THESE IN (or set GMAIL_CLIENT_ID / GMAIL_CLIENT_SECRET as env vars) ─
 const CLIENT_ID =
-  "GMAIL_CLIENT_ID_PLACEHOLDER";
-const CLIENT_SECRET = "GMAIL_CLIENT_SECRET_PLACEHOLDER";
+  process.env.GMAIL_CLIENT_ID ?? "YOUR_CLIENT_ID_HERE";
+const CLIENT_SECRET =
+  process.env.GMAIL_CLIENT_SECRET ?? "YOUR_CLIENT_SECRET_HERE";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const REDIRECT_URI = "http://localhost:3333/callback";
