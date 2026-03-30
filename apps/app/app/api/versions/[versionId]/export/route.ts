@@ -1,4 +1,4 @@
-import { auth } from "@repo/auth/server";
+import { getAdminSession } from "@repo/auth/session";
 import { database, withProjectContext } from "@repo/database";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -105,8 +105,8 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ versionId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
+  const session = await getAdminSession();
+  if (!session) {
     return new Response("Unauthorized", { status: 401 });
   }
 

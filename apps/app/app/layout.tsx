@@ -1,4 +1,3 @@
-import { env } from "@/env";
 import "./styles.css";
 import { AnalyticsProvider } from "@repo/analytics/provider";
 import { DesignSystemProvider } from "@repo/design-system";
@@ -14,14 +13,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
   <html className={fonts} lang="en" suppressHydrationWarning>
     <body suppressHydrationWarning>
       <AnalyticsProvider>
-        <DesignSystemProvider
-          helpUrl={env.NEXT_PUBLIC_DOCS_URL}
-          privacyUrl={new URL(
-            "/legal/privacy",
-            env.NEXT_PUBLIC_WEB_URL
-          ).toString()}
-          termsUrl={new URL("/legal/terms", env.NEXT_PUBLIC_WEB_URL).toString()}
-        >
+        <DesignSystemProvider>
           {children}
         </DesignSystemProvider>
       </AnalyticsProvider>

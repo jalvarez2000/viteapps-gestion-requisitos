@@ -38,6 +38,20 @@ enum ProjectSize {
 }
 
 // ─────────────────────────────────────────
+// ADMIN USER
+// Internal user who manages projects.
+// ─────────────────────────────────────────
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────
 // PROJECT
 // A client application being managed.
 // ─────────────────────────────────────────
@@ -54,7 +68,17 @@ model Project {
 
   userSize       ProjectSize?
   aiSize         ProjectSize?
+  tagline        String?
   clientPassword String?
+
+  inProduction Boolean   @default(false)
+  productionAt DateTime?
+
+  stripeProductId      String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String?
+  subscriptionStatusAt DateTime?
 
   versions     Version[]
   emailLogs    EmailLog[]

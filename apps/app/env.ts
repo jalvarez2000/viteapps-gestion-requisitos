@@ -25,10 +25,12 @@ export const env = createEnv({
     webhooks(),
   ],
   server: {
+    AUTH_SESSION_SECRET: z.string().min(32),
     PORTAL_SESSION_SECRET: z.string().min(32),
   },
   client: {},
   runtimeEnv: {
+    AUTH_SESSION_SECRET: process.env.AUTH_SESSION_SECRET,
     PORTAL_SESSION_SECRET: process.env.PORTAL_SESSION_SECRET,
   },
 });

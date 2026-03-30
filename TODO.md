@@ -101,10 +101,8 @@ En el dashboard de Vercel, para cada proyecto:
 ```bash
 export DB_STAGING_APP="postgresql://app_user:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
 export DB_PRODUCTION_APP="postgresql://app_user:<PASSWORD>@ep-nameless-term-alppqd65.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
-export CLERK_PUBLISHABLE_STAGING="pk_test_..."   # Clerk Dashboard
-export CLERK_SECRET_STAGING="sk_test_..."
-export CLERK_PUBLISHABLE_PRODUCTION="pk_live_..."
-export CLERK_SECRET_PRODUCTION="sk_live_..."
+export AUTH_SESSION_SECRET="$(openssl rand -hex 32)"
+export PORTAL_SESSION_SECRET="$(openssl rand -hex 32)"
 export GMAIL_CLIENT_ID="<Google Cloud Console>"
 export GMAIL_CLIENT_SECRET="<Google Cloud Console>"
 export GMAIL_REFRESH_TOKEN="<ejecutar get-gmail-token.mjs>"
@@ -132,41 +130,33 @@ export CRON_SECRET=$(openssl rand -hex 32)
 
 ## 5. Variables de entorno locales — resumen completo
 
-Los valores reales están en: Google Cloud Console, Clerk Dashboard, Neon Console.
+Los valores reales están en: Google Cloud Console, Neon Console.
 **Nunca commitear estos archivos** (están en `.gitignore`).
 
 Crear `apps/api/.env.local`:
 ```bash
 DATABASE_URL="postgresql://neondb_owner:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
 DATABASE_APP_URL="postgresql://app_user:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
-CLERK_SECRET_KEY="sk_test_..."
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
 GMAIL_CLIENT_ID="<Google Cloud Console>"
 GMAIL_CLIENT_SECRET="<Google Cloud Console>"
 GMAIL_REFRESH_TOKEN="<ejecutar get-gmail-token.mjs>"
 GMAIL_TARGET_ADDRESS="viteappsbreizh@gmail.com"
 CRON_SECRET="<openssl rand -hex 32>"
-# VERCEL_OIDC_TOKEN=  # auto: vercel env pull .env.local
-# BLOB_READ_WRITE_TOKEN=
+# VERCEL_OIDC_TOKEN=  # auto: vercel link && vercel env pull .env.local
 ```
 
 Crear `apps/app/.env.local`:
 ```bash
 DATABASE_URL="postgresql://neondb_owner:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
 DATABASE_APP_URL="postgresql://app_user:<PASSWORD>@ep-damp-rice-aljp6evx.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
-CLERK_SECRET_KEY="sk_test_..."
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+AUTH_SESSION_SECRET="<openssl rand -hex 32>"
+PORTAL_SESSION_SECRET="<openssl rand -hex 32>"
 GMAIL_CLIENT_ID="<Google Cloud Console>"
 GMAIL_CLIENT_SECRET="<Google Cloud Console>"
 GMAIL_REFRESH_TOKEN="<ejecutar get-gmail-token.mjs>"
 GMAIL_TARGET_ADDRESS="viteappsbreizh@gmail.com"
-PORTAL_SESSION_SECRET="<openssl rand -hex 32>"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_WEB_URL="http://localhost:3000"
+NEXT_PUBLIC_WEB_URL="http://localhost:3001"
 NEXT_PUBLIC_API_URL="http://localhost:3002"
 ```
 

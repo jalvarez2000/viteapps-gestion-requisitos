@@ -1,15 +1,12 @@
+import { SignIn } from "@repo/auth/components/sign-in";
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
+import { signInAction } from "../actions";
 
-const title = "Welcome back";
-const description = "Enter your details to sign in.";
+export const metadata: Metadata = {
+  title: "Iniciar sesión",
+  description: "Accede a la gestión de requisitos.",
+};
 
-const SignIn = dynamic(() =>
-  import("@repo/auth/components/sign-in").then((mod) => mod.SignIn)
-);
-
-export const metadata: Metadata = { title, description };
-
-const SignInPage = () => <SignIn />;
+const SignInPage = () => <SignIn action={signInAction} />;
 
 export default SignInPage;

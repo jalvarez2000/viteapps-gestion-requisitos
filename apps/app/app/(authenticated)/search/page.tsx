@@ -1,4 +1,4 @@
-import { auth } from "@repo/auth/server";
+import { getAdminSession } from "@repo/auth/session";
 import { notFound, redirect } from "next/navigation";
 import { Header } from "../components/header";
 
@@ -21,9 +21,9 @@ export const generateMetadata = async ({
 
 const SearchPage = async ({ searchParams }: SearchPageProperties) => {
   const { q } = await searchParams;
-  const { orgId } = await auth();
+  const session = await getAdminSession();
 
-  if (!orgId) {
+  if (!session) {
     notFound();
   }
 

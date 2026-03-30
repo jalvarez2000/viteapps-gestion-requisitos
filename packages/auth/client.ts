@@ -1,1 +1,3 @@
-export * from "@clerk/nextjs";
+"use client";
+
+export { UserButton } from "./components/user-button";

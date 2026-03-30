@@ -23,10 +23,11 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
 
 interface GlobalSidebarProperties {
   readonly children: ReactNode;
+  readonly email: string;
+  readonly name: string;
 }
 
 const navItems = [
@@ -50,27 +51,11 @@ const navSecondary = [
   },
 ];
 
-const UserButtonClient = () => {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) {
-    return <div className="h-8 w-8 rounded-full bg-zinc-200" />;
-  }
-  return (
-    <UserButton
-      appearance={{
-        elements: {
-          rootBox: "flex overflow-hidden w-full",
-          userButtonBox: "flex-row-reverse",
-          userButtonOuterIdentifier: "truncate pl-0",
-        },
-      }}
-      showName
-    />
-  );
-};
-
-export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
+export const GlobalSidebar = ({
+  children,
+  email,
+  name,
+}: GlobalSidebarProperties) => {
   const pathname = usePathname();
 
   return (
@@ -135,7 +120,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem className="flex items-center gap-2">
-              <UserButtonClient />
+              <UserButton email={email} name={name} showName />
               <ModeToggle />
             </SidebarMenuItem>
           </SidebarMenu>
