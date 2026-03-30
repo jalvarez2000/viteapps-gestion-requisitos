@@ -1,7 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter app build",
-  "outputDirectory": "apps/app/.next",
   "ignoreCommand": "node apps/app/scripts/skip-ci.js"
 }
