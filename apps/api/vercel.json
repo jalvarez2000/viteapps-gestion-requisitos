@@ -1,8 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter api build",
-  "ignoreCommand": "node scripts/skip-ci.js",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter api build",
+  "outputDirectory": "apps/api/.next",
+  "ignoreCommand": "node apps/api/scripts/skip-ci.js",
   "crons": [
     {
       "path": "/api/cron/gmail",
