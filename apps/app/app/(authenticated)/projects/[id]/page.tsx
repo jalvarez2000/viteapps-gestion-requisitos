@@ -142,6 +142,7 @@ export default async function ProjectPage({ params }: Props) {
                           projectId={id}
                           status={version.status}
                           versionId={version.id}
+                          versionNumber={version.number}
                         />
                       </div>
                     </div>

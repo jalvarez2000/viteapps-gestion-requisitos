@@ -1,5 +1,6 @@
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
@@ -24,19 +25,21 @@ export interface GroupSummary {
 }
 
 export interface VersionSummaryEmailProps {
+  appUrl?: string;
   cycleNumber: number;
   groups: GroupSummary[];
+  portalUrl: string;
   projectName: string;
-  replySubject: string;
   versionNumber: number;
 }
 
 export const VersionSummaryEmail = ({
+  appUrl,
+  portalUrl,
   projectName,
   versionNumber,
   cycleNumber,
   groups,
-  replySubject,
 }: VersionSummaryEmailProps) => {
   const totalConfirmed = groups.reduce((acc, g) => acc + g.confirmed.length, 0);
   const totalNotImplementable = groups.reduce(
@@ -143,13 +146,31 @@ export const VersionSummaryEmail = ({
 
                 <Hr className="my-6" />
 
-                <Text className="m-0 text-sm text-zinc-500">
-                  Si desea comentar sobre esta revisión, responda a este correo
-                  con el asunto:
+                {appUrl && (
+                  <>
+                    <Text className="m-0 mb-4 text-sm text-zinc-500">
+                      Ya puede acceder a la aplicación:
+                    </Text>
+                    <Button
+                      className="rounded bg-zinc-900 px-5 py-3 font-semibold text-sm text-white"
+                      href={appUrl}
+                    >
+                      Ver la aplicación
+                    </Button>
+                    <Hr className="my-6" />
+                  </>
+                )}
+
+                <Text className="m-0 mb-4 text-sm text-zinc-500">
+                  Si aún no tiene su suscripción activa puede hacerlo desde su
+                  espacio de cliente:
                 </Text>
-                <Text className="mt-2 rounded bg-zinc-100 p-2 font-bold font-mono text-sm text-zinc-800">
-                  {replySubject}
-                </Text>
+                <Button
+                  className="rounded bg-zinc-900 px-5 py-3 font-semibold text-sm text-white"
+                  href={portalUrl}
+                >
+                  Acceder a mi espacio
+                </Button>
               </Section>
             </Section>
           </Container>
@@ -181,7 +202,7 @@ VersionSummaryEmail.PreviewProps = {
       ],
     },
   ],
-  replySubject: "COMENTARIOS A REQUISITOS VERSION EN CURSO: Portal Clientes",
+  portalUrl: "http://localhost:3000/portal/PORTALCLIENT-001",
 } satisfies VersionSummaryEmailProps;
 
 export default VersionSummaryEmail;

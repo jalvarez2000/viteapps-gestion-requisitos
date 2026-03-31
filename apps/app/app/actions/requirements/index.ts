@@ -22,7 +22,8 @@ export async function reviewRequirement(
 export async function completeReview(
   projectId: string,
   versionId: string,
-  reviewCycleId: string
+  reviewCycleId: string,
+  appUrl?: string
 ) {
   // Verify no PENDING requirements remain
   const pending = await database.requirement.count({
@@ -38,7 +39,7 @@ export async function completeReview(
     database.version.findUniqueOrThrow({
       where: { id: versionId },
       include: {
-        project: { select: { name: true, clientEmail: true } },
+        project: { select: { name: true, clientEmail: true, code: true } },
         groups: {
           orderBy: { createdAt: "asc" },
           include: { requirements: { orderBy: { createdAt: "asc" } } },
@@ -75,6 +76,9 @@ export async function completeReview(
       })),
   }));
 
+  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const portalUrl = `${appBaseUrl}/portal/${version.project.code}`;
+
   await sendVersionSummary({
     to: version.project.clientEmail,
     props: {
@@ -82,7 +86,8 @@ export async function completeReview(
       versionNumber: version.number,
       cycleNumber: cycle.cycleNumber,
       groups,
-      replySubject: `COMENTARIOS A REQUISITOS VERSION EN CURSO: ${version.project.name}`,
+      portalUrl,
+      appUrl,
     },
   });
 

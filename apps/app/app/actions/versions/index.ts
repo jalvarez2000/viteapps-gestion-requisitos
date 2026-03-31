@@ -1,6 +1,8 @@
 "use server";
 
-import { database } from "@repo/database";
+import { database, withProjectContext } from "@repo/database";
+import type { GroupSummary } from "@repo/email";
+import { sendVersionSummary } from "@repo/gmail";
 import { revalidatePath } from "next/cache";
 
 export async function freezeVersion(projectId: string, versionId: string) {
@@ -52,11 +54,17 @@ export async function reopenVersion(projectId: string, versionId: string) {
 export async function freezeAndTagVersion(
   projectId: string,
   versionId: string,
-  tagName: string
+  tagName: string,
+  appUrl?: string
 ) {
   const version = await database.version.findUnique({
     where: { id: versionId },
-    select: { status: true, number: true, projectId: true },
+    select: {
+      status: true,
+      number: true,
+      projectId: true,
+      project: { select: { name: true, clientEmail: true, code: true } },
+    },
   });
 
   if (!(version && ["OPEN", "FROZEN"].includes(version.status))) {
@@ -84,6 +92,48 @@ export async function freezeAndTagVersion(
       },
     });
   }
+
+  // Send version summary email to client
+  const groups = await withProjectContext(projectId, (tx) =>
+    tx.requirementGroup.findMany({
+      where: { versionId },
+      orderBy: { createdAt: "asc" },
+      include: { requirements: { orderBy: { createdAt: "asc" } } },
+    })
+  );
+
+  const emailGroups: GroupSummary[] = groups.map((g) => ({
+    name: g.name,
+    confirmed: g.requirements
+      .filter((r) => r.status === "CONFIRMED")
+      .map((r) => ({
+        title: r.title,
+        description: r.description,
+        reviewComment: r.reviewComment,
+      })),
+    notImplementable: g.requirements
+      .filter((r) => r.status === "NOT_IMPLEMENTABLE")
+      .map((r) => ({
+        title: r.title,
+        description: r.description,
+        reviewComment: r.reviewComment,
+      })),
+  }));
+
+  const appUrl_ = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const portalUrl = `${appUrl_}/portal/${version.project.code}`;
+
+  await sendVersionSummary({
+    to: version.project.clientEmail,
+    props: {
+      projectName: version.project.name,
+      versionNumber: version.number,
+      cycleNumber: 1,
+      groups: emailGroups,
+      portalUrl,
+      appUrl,
+    },
+  });
 
   revalidatePath(`/projects/${projectId}`);
 }

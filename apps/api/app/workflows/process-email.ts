@@ -245,17 +245,11 @@ async function sendConfirmation(params: {
   const { database } = await import("@repo/database");
   const { sendReceptionConfirmation } = await import("@repo/gmail");
 
-  const [requirements, comments] = await Promise.all([
-    database.requirement.findMany({
-      where: { versionId: params.versionId, sourceEmailId: params.emailLogId },
-      include: { group: { select: { name: true } } },
-      orderBy: { createdAt: "asc" },
-    }),
-    database.emailComment.findMany({
-      where: { emailLogId: params.emailLogId },
-      orderBy: { createdAt: "asc" },
-    }),
-  ]);
+  const requirements = await database.requirement.findMany({
+    where: { versionId: params.versionId, sourceEmailId: params.emailLogId },
+    include: { group: { select: { name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
 
   await sendReceptionConfirmation({
     to: params.to,
@@ -263,13 +257,11 @@ async function sendConfirmation(params: {
       projectName: params.projectName,
       versionNumber: params.versionNumber,
       attachmentCount: params.attachmentCount,
-      replySubject: `COMENTARIOS A REQUISITOS VERSION EN CURSO: ${params.projectName}`,
       requirements: requirements.map((r) => ({
         group: r.group.name,
         title: r.title,
         description: r.description,
       })),
-      comments: comments.map((c) => c.body),
       userSize: params.userSize,
       aiSize: params.aiSize,
       portalUrl: params.portalUrl,

@@ -23,10 +23,8 @@ export type ProjectSize = "XS" | "S" | "M" | "L" | "XL";
 export interface ReceptionConfirmationEmailProps {
   aiSize: ProjectSize;
   attachmentCount: number;
-  comments: string[];
   portalUrl: string;
   projectName: string;
-  replySubject: string;
   requirements: ReceivedRequirement[];
   userSize: ProjectSize | null;
   versionNumber: number;
@@ -45,8 +43,6 @@ export const ReceptionConfirmationEmail = ({
   versionNumber,
   requirements,
   attachmentCount,
-  comments,
-  replySubject,
   userSize,
   aiSize,
   portalUrl,
@@ -113,20 +109,6 @@ export const ReceptionConfirmationEmail = ({
                   </Section>
                 ))}
 
-                {comments.length > 0 ? (
-                  <>
-                    <Hr className="my-6" />
-                    <Text className="m-0 mb-3 font-semibold text-sm text-zinc-800">
-                      Observations et remarques
-                    </Text>
-                    {comments.map((c) => (
-                      <Section className="mb-2 ml-2" key={c}>
-                        <Text className="m-0 text-sm text-zinc-600">— {c}</Text>
-                      </Section>
-                    ))}
-                  </>
-                ) : null}
-
                 <Hr className="my-6" />
 
                 {/* Size assessment section */}
@@ -169,17 +151,6 @@ export const ReceptionConfirmationEmail = ({
                   Accéder à mon espace
                 </Button>
 
-                <Hr className="my-6" />
-
-                <Text className="m-0 text-sm text-zinc-500">
-                  Notre équipe analysera chaque besoin et vous enverra un
-                  récapitulatif de la révision prochainement. Si vous souhaitez
-                  ajouter des commentaires ou des corrections, répondez à cet
-                  e-mail avec l'objet :
-                </Text>
-                <Text className="mt-2 rounded bg-zinc-100 p-2 font-bold font-mono text-sm text-zinc-800">
-                  {replySubject}
-                </Text>
               </Section>
             </Section>
           </Container>
@@ -193,10 +164,6 @@ ReceptionConfirmationEmail.PreviewProps = {
   aiSize: "M",
   attachmentCount: 1,
   portalUrl: "http://localhost:3000/portal/PORTALCLIENT-001",
-  comments: [
-    "¿Podéis incluir soporte para móvil desde el principio?",
-    "El plazo de entrega ideal sería antes de julio.",
-  ],
   projectName: "Portal Clientes",
   requirements: [
     {
@@ -215,7 +182,6 @@ ReceptionConfirmationEmail.PreviewProps = {
       description: "El usuario puede ver y editar su perfil.",
     },
   ],
-  replySubject: "COMENTARIOS A REQUISITOS VERSION EN CURSO: Portal Clientes",
   userSize: "S",
   versionNumber: 1,
 } satisfies ReceptionConfirmationEmailProps;

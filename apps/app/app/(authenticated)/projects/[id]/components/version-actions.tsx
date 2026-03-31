@@ -30,16 +30,19 @@ interface VersionActionsProps {
   projectId: string;
   status: VersionStatus;
   versionId: string;
+  versionNumber: number;
 }
 
 export function VersionActions({
   projectId,
   versionId,
   status,
+  versionNumber,
 }: VersionActionsProps) {
   const [isPending, startTransition] = useTransition();
   const [tagDialog, setTagDialog] = useState(false);
-  const [tagName, setTagName] = useState("");
+  const [tagName, setTagName] = useState(`${versionNumber}.0`);
+  const [appUrl, setAppUrl] = useState("");
 
   if (status === "TAGGED") {
     return null;
@@ -58,9 +61,10 @@ export function VersionActions({
       return;
     }
     startTransition(async () => {
-      await freezeAndTagVersion(projectId, versionId, tagName.trim());
+      await freezeAndTagVersion(projectId, versionId, tagName.trim(), appUrl.trim() || undefined);
       setTagDialog(false);
       setTagName("");
+      setAppUrl("");
     });
   }
 
@@ -107,7 +111,16 @@ export function VersionActions({
               placeholder="1.0.0"
               value={tagName}
             />
+            <Label htmlFor="appUrl">URL de la aplicación (opcional)</Label>
+            <Input
+              id="appUrl"
+              onChange={(e) => setAppUrl(e.target.value)}
+              placeholder="https://mi-app.vercel.app"
+              type="url"
+              value={appUrl}
+            />
             <p className="text-muted-foreground text-xs">
+              Si indicas la URL se incluirá un enlace en el correo al cliente.
               Esta acción es irreversible. La versión quedará bloqueada y se
               creará la siguiente.
             </p>
