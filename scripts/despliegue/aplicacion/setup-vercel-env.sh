@@ -16,9 +16,18 @@
 
 set -euo pipefail
 
+# ─── Cargar .env.secrets si existe ───────────────────────────────────────────
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SECRETS_FILE="$REPO_ROOT/.env.secrets"
+if [ -f "$SECRETS_FILE" ]; then
+  # shellcheck source=/dev/null
+  source "$SECRETS_FILE"
+  echo "✓ Variables cargadas desde .env.secrets"
+else
+  echo "ℹ .env.secrets no encontrado — usando variables de entorno del shell"
+fi
+
 SCOPE="jalvarez2000-5936s-projects"
-APP_PROJECT="gestion-requisitos-app"
-API_PROJECT="gestion-requisitos-api"
 
 TARGET="${1:-}"
 
@@ -101,8 +110,10 @@ API_URL_PRODUCTION="https://gestion-requisitos-api.vercel.app"   # TODO: dominio
 # Helpers
 # =============================================================================
 
+# add_var <cwd> <name> <value> [targets] [sensitive]
+# cwd: directorio del proyecto (apps/app o apps/api) — contiene .vercel/project.json
 add_var() {
-  local project="$1"
+  local cwd="$1"
   local name="$2"
   local value="$3"
   local targets="${4:-production}"
@@ -110,25 +121,21 @@ add_var() {
 
   echo "  → $name [$targets]"
 
-  vercel env rm "$name" production   --yes --scope "$SCOPE" --cwd "/dev/null" 2>/dev/null || true
-  vercel env rm "$name" preview      --yes --scope "$SCOPE" --cwd "/dev/null" 2>/dev/null || true
-  vercel env rm "$name" development  --yes --scope "$SCOPE" --cwd "/dev/null" 2>/dev/null || true
+  vercel env rm "$name" production  --yes --scope "$SCOPE" --cwd "$cwd" 2>/dev/null || true
+  vercel env rm "$name" preview     --yes --scope "$SCOPE" --cwd "$cwd" 2>/dev/null || true
+  vercel env rm "$name" development --yes --scope "$SCOPE" --cwd "$cwd" 2>/dev/null || true
 
   IFS=',' read -ra TARGET_LIST <<< "$targets"
   for target in "${TARGET_LIST[@]}"; do
     if [ "$sensitive" = "true" ]; then
       printf '%s' "$value" | vercel env add "$name" "$target" \
-        --scope "$SCOPE" --project "$project" --sensitive --force
+        --scope "$SCOPE" --cwd "$cwd" --sensitive --force
     else
       printf '%s' "$value" | vercel env add "$name" "$target" \
-        --scope "$SCOPE" --project "$project" --force
+        --scope "$SCOPE" --cwd "$cwd" --force
     fi
   done
 }
-
-# =============================================================================
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "$REPO_ROOT"
 
 # =============================================================================
 # gestion-requisitos-app — PRO
@@ -139,27 +146,24 @@ echo "════════════════════════�
 echo "  gestion-requisitos-app  [production]"
 echo "══════════════════════════════════════════════"
 
-cd apps/app
-
-add_var "$APP_PROJECT" "DATABASE_APP_URL"      "$DB_PRODUCTION_APP"   "production" "true"
-add_var "$APP_PROJECT" "AUTH_SESSION_SECRET"   "$AUTH_SESSION_SECRET" "production" "true"
-add_var "$APP_PROJECT" "PORTAL_SESSION_SECRET" "$PORTAL_SESSION_SECRET" "production" "true"
-add_var "$APP_PROJECT" "GMAIL_CLIENT_ID"       "$GMAIL_CLIENT_ID"     "production"
-add_var "$APP_PROJECT" "GMAIL_CLIENT_SECRET"   "$GMAIL_CLIENT_SECRET" "production" "true"
-add_var "$APP_PROJECT" "GMAIL_REFRESH_TOKEN"   "$GMAIL_REFRESH_TOKEN" "production" "true"
-add_var "$APP_PROJECT" "GMAIL_TARGET_ADDRESS"  "$GMAIL_TARGET"        "production"
-add_var "$APP_PROJECT" "NEXT_PUBLIC_APP_URL"   "$APP_URL_PRODUCTION"  "production"
-add_var "$APP_PROJECT" "NEXT_PUBLIC_WEB_URL"   "$APP_URL_PRODUCTION"  "production"
-add_var "$APP_PROJECT" "NEXT_PUBLIC_API_URL"   "$API_URL_PRODUCTION"  "production"
-add_var "$APP_PROJECT" "STRIPE_SECRET_KEY"     "$STRIPE_SECRET_KEY"   "production" "true"
-add_var "$APP_PROJECT" "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET" "production" "true"
-add_var "$APP_PROJECT" "STRIPE_PRICE_ID_XS"    "$STRIPE_PRICE_ID_XS"  "production"
-add_var "$APP_PROJECT" "STRIPE_PRICE_ID_S"     "$STRIPE_PRICE_ID_S"   "production"
-add_var "$APP_PROJECT" "STRIPE_PRICE_ID_M"     "$STRIPE_PRICE_ID_M"   "production"
-add_var "$APP_PROJECT" "STRIPE_PRICE_ID_L"     "$STRIPE_PRICE_ID_L"   "production"
-add_var "$APP_PROJECT" "STRIPE_PRICE_ID_XL"    "$STRIPE_PRICE_ID_XL"  "production"
-
-cd ../..
+APP_DIR="$REPO_ROOT/apps/app"
+add_var "$APP_DIR" "DATABASE_APP_URL"      "$DB_PRODUCTION_APP"     "production" "true"
+add_var "$APP_DIR" "AUTH_SESSION_SECRET"   "$AUTH_SESSION_SECRET"   "production" "true"
+add_var "$APP_DIR" "PORTAL_SESSION_SECRET" "$PORTAL_SESSION_SECRET" "production" "true"
+add_var "$APP_DIR" "GMAIL_CLIENT_ID"       "$GMAIL_CLIENT_ID"       "production"
+add_var "$APP_DIR" "GMAIL_CLIENT_SECRET"   "$GMAIL_CLIENT_SECRET"   "production" "true"
+add_var "$APP_DIR" "GMAIL_REFRESH_TOKEN"   "$GMAIL_REFRESH_TOKEN"   "production" "true"
+add_var "$APP_DIR" "GMAIL_TARGET_ADDRESS"  "$GMAIL_TARGET"          "production"
+add_var "$APP_DIR" "NEXT_PUBLIC_APP_URL"   "$APP_URL_PRODUCTION"    "production"
+add_var "$APP_DIR" "NEXT_PUBLIC_WEB_URL"   "$APP_URL_PRODUCTION"    "production"
+add_var "$APP_DIR" "NEXT_PUBLIC_API_URL"   "$API_URL_PRODUCTION"    "production"
+add_var "$APP_DIR" "STRIPE_SECRET_KEY"     "$STRIPE_SECRET_KEY"     "production" "true"
+add_var "$APP_DIR" "STRIPE_WEBHOOK_SECRET" "$STRIPE_WEBHOOK_SECRET" "production" "true"
+add_var "$APP_DIR" "STRIPE_PRICE_ID_XS"    "$STRIPE_PRICE_ID_XS"   "production"
+add_var "$APP_DIR" "STRIPE_PRICE_ID_S"     "$STRIPE_PRICE_ID_S"    "production"
+add_var "$APP_DIR" "STRIPE_PRICE_ID_M"     "$STRIPE_PRICE_ID_M"    "production"
+add_var "$APP_DIR" "STRIPE_PRICE_ID_L"     "$STRIPE_PRICE_ID_L"    "production"
+add_var "$APP_DIR" "STRIPE_PRICE_ID_XL"    "$STRIPE_PRICE_ID_XL"   "production"
 
 # =============================================================================
 # gestion-requisitos-api — PRO
@@ -170,24 +174,22 @@ echo "════════════════════════�
 echo "  gestion-requisitos-api  [production]"
 echo "══════════════════════════════════════════════"
 
-cd apps/api
+API_DIR="$REPO_ROOT/apps/api"
+add_var "$API_DIR" "DATABASE_APP_URL"      "$DB_PRODUCTION_APP"   "production" "true"
+add_var "$API_DIR" "GMAIL_CLIENT_ID"       "$GMAIL_CLIENT_ID"     "production"
+add_var "$API_DIR" "GMAIL_CLIENT_SECRET"   "$GMAIL_CLIENT_SECRET" "production" "true"
+add_var "$API_DIR" "GMAIL_REFRESH_TOKEN"   "$GMAIL_REFRESH_TOKEN" "production" "true"
+add_var "$API_DIR" "GMAIL_TARGET_ADDRESS"  "$GMAIL_TARGET"        "production"
+add_var "$API_DIR" "CRON_SECRET"           "$CRON_SECRET"         "production" "true"
+add_var "$API_DIR" "NEXT_PUBLIC_APP_URL"   "$APP_URL_PRODUCTION"  "production"
+add_var "$API_DIR" "NEXT_PUBLIC_WEB_URL"   "$APP_URL_PRODUCTION"  "production"
+add_var "$API_DIR" "STRIPE_SECRET_KEY"     "$STRIPE_SECRET_KEY"   "production" "true"
+add_var "$API_DIR" "STRIPE_PRICE_ID_XS"    "$STRIPE_PRICE_ID_XS"  "production"
+add_var "$API_DIR" "STRIPE_PRICE_ID_S"     "$STRIPE_PRICE_ID_S"   "production"
+add_var "$API_DIR" "STRIPE_PRICE_ID_M"     "$STRIPE_PRICE_ID_M"   "production"
+add_var "$API_DIR" "STRIPE_PRICE_ID_L"     "$STRIPE_PRICE_ID_L"   "production"
+add_var "$API_DIR" "STRIPE_PRICE_ID_XL"    "$STRIPE_PRICE_ID_XL"  "production"
 
-add_var "$API_PROJECT" "DATABASE_APP_URL"      "$DB_PRODUCTION_APP"   "production" "true"
-add_var "$API_PROJECT" "GMAIL_CLIENT_ID"       "$GMAIL_CLIENT_ID"     "production"
-add_var "$API_PROJECT" "GMAIL_CLIENT_SECRET"   "$GMAIL_CLIENT_SECRET" "production" "true"
-add_var "$API_PROJECT" "GMAIL_REFRESH_TOKEN"   "$GMAIL_REFRESH_TOKEN" "production" "true"
-add_var "$API_PROJECT" "GMAIL_TARGET_ADDRESS"  "$GMAIL_TARGET"        "production"
-add_var "$API_PROJECT" "CRON_SECRET"           "$CRON_SECRET"         "production" "true"
-add_var "$API_PROJECT" "NEXT_PUBLIC_APP_URL"   "$APP_URL_PRODUCTION"  "production"
-add_var "$API_PROJECT" "NEXT_PUBLIC_WEB_URL"   "$APP_URL_PRODUCTION"  "production"
-add_var "$API_PROJECT" "STRIPE_SECRET_KEY"     "$STRIPE_SECRET_KEY"   "production" "true"
-add_var "$API_PROJECT" "STRIPE_PRICE_ID_XS"    "$STRIPE_PRICE_ID_XS"  "production"
-add_var "$API_PROJECT" "STRIPE_PRICE_ID_S"     "$STRIPE_PRICE_ID_S"   "production"
-add_var "$API_PROJECT" "STRIPE_PRICE_ID_M"     "$STRIPE_PRICE_ID_M"   "production"
-add_var "$API_PROJECT" "STRIPE_PRICE_ID_L"     "$STRIPE_PRICE_ID_L"   "production"
-add_var "$API_PROJECT" "STRIPE_PRICE_ID_XL"    "$STRIPE_PRICE_ID_XL"  "production"
-
-cd ../..
 
 # =============================================================================
 

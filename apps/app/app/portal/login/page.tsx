@@ -4,7 +4,7 @@ import { Button } from "@repo/design-system/components/ui/button";
 import { Input } from "@repo/design-system/components/ui/input";
 import { Label } from "@repo/design-system/components/ui/label";
 import { useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { Suspense, useState, useTransition } from "react";
 import {
   checkProject,
   loginWithPassword,
@@ -225,6 +225,14 @@ function ForgotStep({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PortalLoginPage() {
+  return (
+    <Suspense>
+      <PortalLoginPageInner />
+    </Suspense>
+  );
+}
+
+function PortalLoginPageInner() {
   const searchParams = useSearchParams();
   const [code, setCode] = useState(searchParams.get("code") ?? "");
   const [email, setEmail] = useState("");

@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "node apps/api/scripts/skip-ci.js",
+  "ignoreCommand": "node scripts/skip-ci.js",
   "crons": [
     {
       "path": "/api/cron/gmail",
