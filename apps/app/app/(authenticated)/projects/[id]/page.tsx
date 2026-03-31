@@ -8,10 +8,11 @@ import {
   CardTitle,
 } from "@repo/design-system/components/ui/card";
 import { Separator } from "@repo/design-system/components/ui/separator";
-import { ChevronRightIcon, MailIcon } from "lucide-react";
+import { ChevronRightIcon, ExternalLinkIcon, MailIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { createBillingPortalSession } from "@/app/actions/stripe";
 import { VersionActions } from "./components/version-actions";
 
 interface Props {
@@ -80,6 +81,15 @@ export default async function ProjectPage({ params }: Props) {
           )}
         </div>
       </div>
+
+      <Separator />
+
+      {/* Suscripción */}
+      <SubscriptionSection
+        code={project.code}
+        customerId={project.stripeCustomerId}
+        status={project.subscriptionStatus}
+      />
 
       <Separator />
 
@@ -159,6 +169,53 @@ export default async function ProjectPage({ params }: Props) {
               );
             })}
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+async function SubscriptionSection({
+  code,
+  status,
+  customerId,
+}: {
+  code: string;
+  status: string | null;
+  customerId: string | null;
+}) {
+  const isActive = status === "active" || status === "trialing";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const returnUrl = `${appUrl}/projects`;
+
+  const billingAction = customerId
+    ? createBillingPortalSession.bind(null, code, returnUrl)
+    : undefined;
+
+  return (
+    <div>
+      <h2 className="mb-3 font-semibold">Suscripción</h2>
+      <div className="flex items-center gap-3">
+        {isActive && (
+          <Badge className="border-green-500 text-green-600" variant="outline">
+            Activa
+          </Badge>
+        )}
+        {!isActive && (
+          <Badge
+            className={status ? "border-amber-500 text-amber-600" : ""}
+            variant="outline"
+          >
+            {status ?? "Sin suscripción"}
+          </Badge>
+        )}
+        {billingAction && (
+          <form action={billingAction}>
+            <Button size="sm" type="submit" variant="outline">
+              <ExternalLinkIcon className="mr-1.5 h-3 w-3" />
+              Ver en Stripe
+            </Button>
+          </form>
         )}
       </div>
     </div>

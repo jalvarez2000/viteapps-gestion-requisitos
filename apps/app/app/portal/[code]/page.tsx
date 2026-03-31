@@ -1,6 +1,10 @@
 import { database, withProjectContext } from "@repo/database";
 import { redirect } from "next/navigation";
 import { getPortalSession } from "@/lib/portal-session";
+import {
+  createBillingPortalSession,
+  createCheckoutSession,
+} from "@/app/actions/stripe";
 import { NewRequirementForm } from "./new-requirement-form";
 import {
   type PortalCommentData,
@@ -36,7 +40,12 @@ export default async function PortalProjectPage({ params }: Props) {
 
   const project = await database.project.findUnique({
     where: { code: normalizedCode },
-    include: {
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      subscriptionStatus: true,
+      stripeCustomerId: true,
       versions: {
         where: { status: "OPEN" },
         orderBy: { number: "desc" },
@@ -117,6 +126,19 @@ export default async function PortalProjectPage({ params }: Props) {
     })
   );
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const portalUrl = `${appUrl}/portal/${normalizedCode}`;
+  const isActive =
+    project.subscriptionStatus === "active" ||
+    project.subscriptionStatus === "trialing";
+
+  const checkoutAction = createCheckoutSession.bind(null, normalizedCode);
+  const billingAction = createBillingPortalSession.bind(
+    null,
+    normalizedCode,
+    portalUrl
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       {/* Cabecera */}
@@ -131,6 +153,44 @@ export default async function PortalProjectPage({ params }: Props) {
           </p>
         )}
       </div>
+
+      {/* Banner de suscripción */}
+      {isActive ? (
+        <div className="mb-8 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            <p className="font-medium text-green-800 text-sm">
+              Suscripción activa
+            </p>
+          </div>
+          <form action={billingAction}>
+            <button
+              className="text-green-700 text-xs underline underline-offset-2 hover:text-green-900"
+              type="submit"
+            >
+              Gestionar suscripción
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="mb-8 rounded-lg border border-slate-200 bg-slate-50 px-5 py-4">
+          <p className="mb-1 font-semibold text-slate-800 text-sm">
+            Activa tu suscripción
+          </p>
+          <p className="mb-4 text-slate-500 text-sm">
+            Para acceder a todas las funcionalidades de tu aplicación, activa tu
+            suscripción.
+          </p>
+          <form action={checkoutAction}>
+            <button
+              className="inline-flex items-center rounded-md bg-slate-900 px-5 py-2.5 font-semibold text-sm text-white hover:bg-slate-700 focus:outline-none"
+              type="submit"
+            >
+              Suscribirse ahora →
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Requisitos funcionales */}
       {Object.keys(grouped).length > 0 ? (
