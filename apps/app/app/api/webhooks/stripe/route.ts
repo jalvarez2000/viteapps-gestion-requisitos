@@ -50,16 +50,33 @@ export async function POST(req: Request) {
     case "customer.subscription.updated":
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      const customerId = sub.customer as string;
-
-      await database.project.updateMany({
-        where: { stripeCustomerId: customerId },
-        data: {
-          stripeSubscriptionId: sub.id,
-          subscriptionStatus: sub.status,
-          subscriptionStatusAt: new Date(),
-        },
-      });
+      // Use projectCode from subscription metadata (set at checkout) as source
+      // of truth — avoids updating the wrong project when a customer has
+      // multiple projects sharing the same stripeCustomerId.
+      const projectCode = sub.metadata?.projectCode;
+      if (projectCode) {
+        await database.project.update({
+          where: { code: projectCode },
+          data: {
+            stripeSubscriptionId: sub.id,
+            subscriptionStatus: sub.status,
+            subscriptionStatusAt: new Date(),
+          },
+        });
+      } else {
+        // Fallback for subscriptions created before metadata was added.
+        // Safe only when customerId maps to exactly one project.
+        await database.project.updateMany({
+          where: {
+            stripeCustomerId: sub.customer as string,
+            stripeSubscriptionId: sub.id,
+          },
+          data: {
+            subscriptionStatus: sub.status,
+            subscriptionStatusAt: new Date(),
+          },
+        });
+      }
       break;
     }
   }

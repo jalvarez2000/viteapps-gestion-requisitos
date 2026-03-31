@@ -69,10 +69,18 @@ export default async function ProjectPage({ params }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
+          <p className="mb-0.5 font-mono text-muted-foreground text-xs uppercase tracking-widest">
+            {project.code}
+          </p>
           <h1 className="font-bold text-2xl tracking-tight">{project.name}</h1>
-          <div className="mt-1 flex items-center gap-2 text-muted-foreground text-sm">
-            <MailIcon className="h-3 w-3" />
-            <span>{project.clientEmail || "Sin email de cliente"}</span>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-muted-foreground text-sm">
+            <span className="flex items-center gap-1.5">
+              <MailIcon className="h-3 w-3" />
+              {project.clientEmail || "Sin email de cliente"}
+            </span>
+            {project.userSize && (
+              <Badge variant="secondary">Talla {project.userSize}</Badge>
+            )}
           </div>
           {project.description && (
             <p className="mt-2 text-muted-foreground text-sm">

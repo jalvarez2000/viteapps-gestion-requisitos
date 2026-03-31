@@ -54,7 +54,7 @@ export async function createCheckoutSession(projectCode: string) {
       metadata: { projectCode: project.code },
     },
     custom_text: {
-      submit: { message: `Proyecto: ${project.name}` },
+      submit: { message: `Proyecto: ${project.name} (${project.code})` },
     },
     success_url: `${appUrl}/portal/${project.code}?subscribed=1`,
     cancel_url: `${appUrl}/portal/${project.code}`,

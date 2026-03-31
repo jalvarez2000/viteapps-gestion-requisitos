@@ -44,6 +44,7 @@ export default async function PortalProjectPage({ params }: Props) {
       id: true,
       code: true,
       name: true,
+      userSize: true,
       subscriptionStatus: true,
       stripeCustomerId: true,
       versions: {
@@ -147,11 +148,18 @@ export default async function PortalProjectPage({ params }: Props) {
           {project.code}
         </p>
         <h1 className="font-bold text-3xl text-slate-900">{project.name}</h1>
-        {version && (
-          <p className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-3 py-0.5 font-medium text-blue-700 text-xs">
-            Versión {version.number}
-          </p>
-        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {version && (
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-0.5 font-medium text-blue-700 text-xs">
+              Versión {version.number}
+            </span>
+          )}
+          {project.userSize && (
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-0.5 font-medium text-slate-600 text-xs">
+              Talla {project.userSize}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Banner de suscripción */}
