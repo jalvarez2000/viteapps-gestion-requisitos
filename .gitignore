@@ -287,3 +287,4 @@ Skeleton
 # Local Projects
 localprojects
 viteapps-projects
+scripts/despliegue/bbdd/.db-urls

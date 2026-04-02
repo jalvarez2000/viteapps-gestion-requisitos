@@ -37,6 +37,17 @@ enum ProjectSize {
   XL
 }
 
+enum ProjectStatus {
+  SOLICITADO
+  CREANDO_ENTORNO
+  ENTORNO_CONSTRUIDO
+  CREANDO_CODIGO
+  CODIGO_CREADO
+  TESTEANDO
+  TESTADO
+  SUBIDO_A_STAGING
+}
+
 // ─────────────────────────────────────────
 // ADMIN USER
 // Internal user who manages projects.
@@ -65,6 +76,8 @@ model Project {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  status ProjectStatus @default(SOLICITADO)
 
   userSize       ProjectSize?
   aiSize         ProjectSize?
