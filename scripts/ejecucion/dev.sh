@@ -29,12 +29,18 @@ case "$1" in
     curl -s http://localhost:3002/api/cron/gmail \
       -H "Authorization: Bearer CRON_SECRET_PLACEHOLDER" | jq .
     ;;
+  cron-status)
+    echo "Ejecutando cron de estado de proyectos SOLICITADO..."
+    curl -s http://localhost:3002/api/cron/projects-status \
+      -H "Authorization: Bearer CRON_SECRET_PLACEHOLDER" | jq .
+    ;;
   *)
-    echo "Uso: ./dev.sh [all|api|app|cron]"
+    echo "Uso: ./dev.sh [all|api|app|cron|cron-status]"
     echo ""
-    echo "  all   — Arranca APP (:3000) y API (:3002) juntos"
-    echo "  api   — Arranca el API en localhost:3002"
-    echo "  app   — Arranca la APP en localhost:3000"
-    echo "  cron  — Dispara el cron de Gmail (requiere api corriendo)"
+    echo "  all          — Arranca APP (:3000) y API (:3002) juntos"
+    echo "  api          — Arranca el API en localhost:3002"
+    echo "  app          — Arranca la APP en localhost:3000"
+    echo "  cron         — Dispara el cron de Gmail (requiere api corriendo)"
+    echo "  cron-status  — Dispara el cron de proyectos SOLICITADO (requiere api corriendo)"
     ;;
 esac

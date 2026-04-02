@@ -88,6 +88,26 @@ export function ProjectsFilters() {
           <SelectItem value="inactive">Sin suscripción</SelectItem>
         </SelectContent>
       </Select>
+
+      <Select
+        defaultValue={searchParams.get("status") ?? "all"}
+        onValueChange={(v) => update("status", v)}
+      >
+        <SelectTrigger className="w-44">
+          <SelectValue placeholder="Estado proyecto" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Cualquier estado</SelectItem>
+          <SelectItem value="SOLICITADO">Solicitado</SelectItem>
+          <SelectItem value="CREANDO_ENTORNO">Creando entorno</SelectItem>
+          <SelectItem value="ENTORNO_CONSTRUIDO">Entorno construido</SelectItem>
+          <SelectItem value="CREANDO_CODIGO">Creando código</SelectItem>
+          <SelectItem value="CODIGO_CREADO">Código creado</SelectItem>
+          <SelectItem value="TESTEANDO">Testeando</SelectItem>
+          <SelectItem value="TESTADO">Testado</SelectItem>
+          <SelectItem value="SUBIDO_A_STAGING">En staging</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

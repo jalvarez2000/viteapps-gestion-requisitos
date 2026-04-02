@@ -15,11 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@repo/design-system/components/ui/sidebar";
-import {
-  FolderKanbanIcon,
-  LayoutDashboardIcon,
-  SettingsIcon,
-} from "lucide-react";
+import { FolderKanbanIcon, SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -31,11 +27,6 @@ interface GlobalSidebarProperties {
 }
 
 const navItems = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboardIcon,
-  },
   {
     title: "Proyectos",
     url: "/projects",
@@ -82,11 +73,7 @@ export const GlobalSidebar = ({
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={
-                      item.url === "/"
-                        ? pathname === "/"
-                        : pathname.startsWith(item.url)
-                    }
+                    isActive={pathname.startsWith(item.url)}
                     tooltip={item.title}
                   >
                     <Link href={item.url}>
