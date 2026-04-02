@@ -1,140 +1,165 @@
-# ▲ / next-forge
+# Gestión de Requisitos
 
-**Production-grade Turborepo template for Next.js apps.**
+SaaS de gestión de requisitos funcionales para proyectos de desarrollo de software. Los clientes envían emails con requisitos en español; el sistema los extrae con IA, los estructura y los presenta a un gestor para su revisión. Una vez aprobados, el sistema genera automáticamente los proyectos de código correspondientes mediante agentes Claude Code.
 
-<div>
-  <img src="https://img.shields.io/npm/dy/next-forge" alt="" />
-  <img src="https://img.shields.io/npm/v/next-forge" alt="" />
-  <img src="https://img.shields.io/github/license/vercel/next-forge" alt="" />
-</div>
-
-## Overview
-
-[next-forge](https://github.com/vercel/next-forge) is a production-grade [Turborepo](https://turborepo.com) template for [Next.js](https://nextjs.org/) apps. It's designed to be a comprehensive starting point for building SaaS applications, providing a solid, opinionated foundation with minimal configuration required.
-
-Built on a decade of experience building web applications, next-forge balances speed and quality to help you ship thoroughly-built products faster.
-
-### Philosophy
-
-next-forge is built around five core principles:
-
-- **Fast** — Quick to build, run, deploy, and iterate on
-- **Cheap** — Free to start with services that scale with you
-- **Opinionated** — Integrated tooling designed to work together
-- **Modern** — Latest stable features with healthy community support
-- **Safe** — End-to-end type safety and robust security posture
-
-## Demo
-
-Experience next-forge in action:
-
-- [Web](https://demo.next-forge.com) — Marketing website
-- [App](https://app.demo.next-forge.com) — Main application
-- [Storybook](https://storybook.demo.next-forge.com) — Component library
-- [API](https://api.demo.next-forge.com/health) — API health check
-
-## Features
-
-next-forge comes with batteries included:
-
-### Apps
-
-- **Web** — Marketing site built with Tailwind CSS and TWBlocks
-- **App** — Main application with authentication and database integration
-- **API** — RESTful API with health checks and monitoring
-- **Docs** — Documentation site powered by Mintlify
-- **Email** — Email templates with React Email
-- **Storybook** — Component development environment
-
-### Packages
-
-- **Authentication** — Custom email/password with HMAC-SHA256 signed sessions
-- **Database** — Type-safe ORM with migrations
-- **Design System** — Comprehensive component library with dark mode
-- **Payments** — Subscription management via [Stripe](https://stripe.com)
-- **Email** — Transactional emails via [Resend](https://resend.com)
-- **Analytics** — Web ([Google Analytics](https://developers.google.com/analytics)) and product ([Posthog](https://posthog.com))
-- **Observability** — Error tracking ([Sentry](https://sentry.io)), logging, and uptime monitoring ([BetterStack](https://betterstack.com))
-- **Security** — Application security ([Arcjet](https://arcjet.com)), rate limiting, and secure headers
-- **CMS** — Type-safe content management for blogs and documentation
-- **SEO** — Metadata management, sitemaps, and JSON-LD
-- **AI** — AI integration utilities
-- **Webhooks** — Inbound and outbound webhook handling
-- **Collaboration** — Real-time features with avatars and live cursors
-- **Feature Flags** — Feature flag management
-- **Cron** — Scheduled job management
-- **Storage** — File upload and management
-- **Internationalization** — Multi-language support
-- **Notifications** — In-app notification system
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- [Bun](https://bun.sh) (or npm/yarn/pnpm)
-- [Stripe CLI](https://docs.stripe.com/stripe-cli) for local webhook testing
-
-### Installation
-
-Create a new next-forge project:
-
-```sh
-npx next-forge@latest init
-```
-
-### Setup
-
-1. Configure your environment variables
-2. Set up required service accounts (Stripe, Gmail, Neon, etc.)
-3. Run the development server
-
-For detailed setup instructions, read the [documentation](https://www.next-forge.com/docs).
-
-## Structure
-
-next-forge uses a monorepo structure managed by Turborepo:
+## Arquitectura general
 
 ```
-next-forge/
-├── apps/           # Deployable applications
-│   ├── web/        # Marketing website (port 3001)
-│   ├── app/        # Main application (port 3000)
-│   ├── api/        # API server
-│   ├── docs/       # Documentation
-│   ├── email/      # Email templates
-│   └── storybook/  # Component library
-└── packages/       # Shared packages
-    ├── design-system/
-    ├── database/
-    ├── auth/
-    └── ...
+Cliente (email)
+    │
+    ▼
+apps/api  ──── Gmail polling (cron cada minuto)
+    │           └── Extracción con IA (claude-sonnet-4.6)
+    │               └── Requisitos persistidos en BD (Neon)
+    ▼
+apps/app  ──── Revisión del gestor (Next.js, puerto 3000)
+    │           └── Aprobación / ciclos de revisión
+    ▼
+Pipeline de desarrollo automático
+    │
+    ├── cron-status (manual)   → SOLICITADO → clona skeleton → ENTORNO_CONSTRUIDO
+    └── cron-desarrollar (*/4h) → ENTORNO_CONSTRUIDO → agente Claude Code → CODIGO_CREADO
 ```
 
-Each app is self-contained and independently deployable. Packages are shared across apps for consistency and maintainability.
+## Monorepo
 
-## Documentation
+pnpm + Turborepo. Dos apps Next.js desplegables y paquetes compartidos.
 
-Full documentation is available at [next-forge.com/docs](https://www.next-forge.com/docs), including:
+```
+gestion-requisitos/
+├── apps/
+│   ├── app/          # UI del gestor (puerto 3000)
+│   └── api/          # API + crons + workflows (puerto 5555)
+├── packages/
+│   ├── database/     # Prisma 7 + Neon HTTP adapter + RLS
+│   ├── ai/           # Agente de extracción (ToolLoopAgent)
+│   ├── gmail/        # OAuth2: polling inbound + sending outbound
+│   └── email/        # React Email templates
+├── scripts/
+│   ├── ejecucion/    # Scripts de desarrollo local y crons
+│   ├── creacion/     # Scripts de creación de proyectos
+│   └── despliegue/   # Scripts de deploy (bbdd + aplicación)
+└── viteapps-projects/ # Proyectos generados (gitignored)
+    └── CODE-001/
+        ├── ...        # Skeleton clonado
+        └── requirements/
+            └── USER_REQUIREMENTS.txt
+```
 
-- Detailed setup guides
-- Package documentation
-- Migration guides for swapping providers
-- Deployment instructions
-- Examples and recipes
+## Estado de un proyecto
 
-## Contributing
+Los proyectos siguen un ciclo de vida automático gestionado por los scripts y agentes:
 
-We welcome contributions! See the [contributing guide](https://github.com/vercel/next-forge/blob/main/.github/CONTRIBUTING.md) for details.
+| Estado | Descripción |
+|---|---|
+| `SOLICITADO` | Estado inicial. Proyecto creado, pendiente de preparar entorno. |
+| `CREANDO_ENTORNO` | El script está clonando el skeleton en `viteapps-projects/`. |
+| `ENTORNO_CONSTRUIDO` | Skeleton clonado y `USER_REQUIREMENTS.txt` generado. Listo para desarrollo. |
+| `CREANDO_CODIGO` | Un agente Claude Code está implementando los requisitos. |
+| `CODIGO_CREADO` | Agente terminó. Código implementado sin errores. |
+| `TESTEANDO` | En proceso de QA. |
+| `TESTADO` | QA superado. |
+| `SUBIDO_A_STAGING` | Desplegado en entorno de staging. |
 
-## Contributors
+## Comandos de desarrollo
 
-<a href="https://github.com/vercel/next-forge/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=vercel/next-forge" />
-</a>
+```bash
+# Arrancar (desde la raíz del repo)
+./scripts/ejecucion/dev.sh all          # app (:3000) + api (:5555)
+./scripts/ejecucion/dev.sh app          # solo app
+./scripts/ejecucion/dev.sh api          # solo api
+./scripts/ejecucion/stop.sh             # parar todo
 
-Made with [contrib.rocks](https://contrib.rocks).
+# Crons manuales (requieren api corriendo en :5555)
+./scripts/ejecucion/dev.sh cron         # dispara cron de Gmail
+./scripts/ejecucion/dev.sh cron-status  # dispara pipeline SOLICITADO → ENTORNO_CONSTRUIDO
 
-## License
+# Build y calidad
+pnpm build        # build de todas las apps
+pnpm check        # lint (Biome via ultracite)
+pnpm fix          # lint + autofix
+pnpm test         # tests (Vitest)
+pnpm typecheck    # type check via turbo
+```
 
-MIT
+## Pipeline SOLICITADO → ENTORNO_CONSTRUIDO
+
+Ejecutado manualmente con `dev.sh cron-status` o automáticamente si se re-activa el cron.
+
+1. Busca proyectos en estado `SOLICITADO`
+2. Los pasa a `CREANDO_ENTORNO`
+3. Ejecuta `scripts/creacion/clonar_repositorio.sh <CODIGO>` — clona el skeleton sin historial git en `viteapps-projects/<CODIGO>`
+4. Genera `viteapps-projects/<CODIGO>/requirements/USER_REQUIREMENTS.txt` con todos los requisitos y comentarios del proyecto
+5. Los pasa a `ENTORNO_CONSTRUIDO`
+
+**Rutas clave:**
+- Route: `apps/api/app/api/cron/projects-status/route.ts`
+- Script de clonado: `scripts/creacion/clonar_repositorio.sh`
+- Skeleton: `https://github.com/jalvarez2000/viteapps-skeleton`
+
+## Pipeline ENTORNO_CONSTRUIDO → CODIGO_CREADO
+
+Ejecutado automáticamente cada 4 horas via crontab del sistema.
+
+1. Llama a `GET /api/cron/desarrollar` — obtiene proyectos `ENTORNO_CONSTRUIDO` y los pasa a `CREANDO_CODIGO`
+2. Lanza un proceso `claude --dangerously-skip-permissions` en paralelo por cada proyecto
+3. El agente lee `requirements/USER_REQUIREMENTS.txt`, implementa los requisitos y verifica que compile sin errores
+4. Al terminar, el script llama a `POST /api/cron/desarrollar/complete` → pasa a `CODIGO_CREADO` (éxito) o deja en `CREANDO_CODIGO` (error)
+
+**Logs:** `/tmp/claude-dev/<CODE>-<fecha>.log` por proyecto
+
+**Rutas clave:**
+- `apps/api/app/api/cron/desarrollar/route.ts`
+- `apps/api/app/api/cron/desarrollar/complete/route.ts`
+- `scripts/ejecucion/desarrollar_proyectos.sh`
+- `scripts/ejecucion/desarrollar-runner.sh`
+
+## Base de datos
+
+Neon (PostgreSQL serverless). Un proyecto con dos branches:
+
+| Branch | Uso | Variable |
+|---|---|---|
+| `staging` (PRE) | Desarrollo y pruebas | `DB_STAGING_OWNER_URL` |
+| `main` (PRO) | Producción | `DB_PRO_OWNER_URL` |
+
+Credenciales en `scripts/despliegue/bbdd/.db-urls` (no commitear).
+
+```bash
+# Push de schema
+./scripts/despliegue/bbdd/push.sh staging
+./scripts/despliegue/bbdd/push.sh pro     # pide confirmación
+```
+
+**RLS**: Todas las tablas excepto `Project` tienen Row-Level Security. Usar siempre `withProjectContext()` para queries sobre datos de tenant.
+
+## Email
+
+**Inbound** (polling cada minuto, no Pub/Sub):
+- Busca en Gmail asuntos: `NUEVA APP:`, `NUEVOS REQUISITOS APP:`, `COMENTARIOS A REQUISITOS VERSION EN CURSO:`
+- Cada email arranca un `processEmailWorkflow` durable
+
+**Outbound**: Gmail API (OAuth2). No usa Resend.
+
+## Variables de entorno
+
+Ficheros locales necesarios:
+- `apps/app/.env.local`
+- `apps/api/.env.local`
+- `packages/database/.env`
+
+Ver `TODO.md` para referencia completa de variables.
+
+## Crontab del sistema
+
+Dos tareas configuradas en la máquina local (`crontab -l`):
+
+```
+# Cada hora: procesa proyectos SOLICITADO → ENTORNO_CONSTRUIDO
+0 * * * * .../cron-status-runner.sh >> /tmp/cron-status.log 2>&1
+
+# Cada 4 horas: agentes Claude implementan proyectos ENTORNO_CONSTRUIDO → CODIGO_CREADO
+0 */4 * * * .../desarrollar-runner.sh >> /tmp/cron-desarrollar.log 2>&1
+```
+
+Ambos runners verifican si la API está corriendo en `:5555` y la levantan si no lo está.
