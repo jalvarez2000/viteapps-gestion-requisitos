@@ -51,8 +51,8 @@ export default async function ProjectsPage({ searchParams }: Props) {
       q
         ? {
             OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { code: { contains: q, mode: "insensitive" } },
+              { name: { contains: q, mode: "insensitive" as const } },
+              { code: { contains: q, mode: "insensitive" as const } },
             ],
           }
         : {},
