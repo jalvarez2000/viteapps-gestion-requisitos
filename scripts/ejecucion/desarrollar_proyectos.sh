@@ -14,6 +14,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 API_URL="http://localhost:5555"
 LOG_DIR="/tmp/claude-dev"
 RUN_ID="${1:-}"
+ENV="${2:-staging}"
+
+echo "[desarrollar] entorno=$ENV run_id=${RUN_ID:-none}"
 
 CRON_SECRET=$(grep "^CRON_SECRET=" "$REPO_ROOT/apps/api/.env.local" 2>/dev/null \
   | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")

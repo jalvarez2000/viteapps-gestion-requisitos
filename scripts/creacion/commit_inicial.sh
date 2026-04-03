@@ -22,7 +22,7 @@ if [[ ! -d "$DESTINO/.git" ]]; then
 fi
 
 echo "→ Aprovisionando base de datos, secretos y aplicativos..."
-bash "$DESTINO/scripts/despliegue/setup.sh" "$CODIGO" 2>&1
+(cd "$DESTINO" && bash scripts/despliegue/setup.sh "$CODIGO" 2>&1)
 
 gh auth setup-git
 

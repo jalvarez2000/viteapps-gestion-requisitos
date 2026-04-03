@@ -1,0 +1,13 @@
+# Generado por scripts/despliegue/bbdd/setup.sh (o rellenado manualmente)
+# Proyecto Neon de gestion-requisitos
+# NO COMMITEAR el fichero .db-urls (solo este .example)
+
+NEON_PROJECT_ID=""
+
+# Staging (branch: staging)
+DB_STAGING_OWNER_URL="postgresql://neondb_owner:<password>@<host>.neon.tech/neondb?sslmode=require"
+DB_STAGING_APP_URL="postgresql://app_user:<password>@<host>.neon.tech/neondb?sslmode=require"
+
+# Producción (branch: production)
+DB_PRO_OWNER_URL="postgresql://neondb_owner:<password>@<host>.neon.tech/neondb?sslmode=require"
+DB_PRO_APP_URL="postgresql://app_user:<password>@<host>.neon.tech/neondb?sslmode=require"
