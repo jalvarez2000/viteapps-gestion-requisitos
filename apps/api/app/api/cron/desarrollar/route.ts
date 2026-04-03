@@ -22,10 +22,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ projects: [] });
     }
 
-    await database.project.updateMany({
-      where: { id: { in: projects.map((p) => p.id) } },
-      data: { status: "CREANDO_CODIGO" },
-    });
+    for (const p of projects) {
+      await database.project.update({
+        where: { id: p.id },
+        data: { status: "CREANDO_CODIGO" },
+      });
+    }
 
     log.info(`[cron/desarrollar] ${projects.length} proyecto(s) → CREANDO_CODIGO`);
 

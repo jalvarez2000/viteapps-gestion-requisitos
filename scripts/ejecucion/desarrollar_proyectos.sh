@@ -2,6 +2,7 @@
 # Obtiene proyectos en ENTORNO_CONSTRUIDO, los pasa a CREANDO_CODIGO
 # y lanza un agente Claude Code por proyecto en paralelo.
 # Al terminar cada agente, actualiza el estado a CODIGO_CREADO (o deja en CREANDO_CODIGO si hay error).
+# Uso: desarrollar_proyectos.sh [RUN_ID]
 
 set -euo pipefail
 
@@ -12,11 +13,34 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 API_URL="http://localhost:5555"
 LOG_DIR="/tmp/claude-dev"
+RUN_ID="${1:-}"
 
 CRON_SECRET=$(grep "^CRON_SECRET=" "$REPO_ROOT/apps/api/.env.local" 2>/dev/null \
   | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
 
 mkdir -p "$LOG_DIR"
+
+log_entry() {
+  local code="$1"
+  local status="$2"
+  local log_file="$3"
+
+  if [[ -z "$RUN_ID" ]]; then
+    return
+  fi
+
+  local log_content=""
+  if [[ -f "$log_file" ]]; then
+    # Limitar a los últimos 10000 caracteres para no saturar la BD
+    log_content="$(tail -c 10000 "$log_file" | node -e "let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>console.log(JSON.stringify(d)))")"
+  fi
+
+  local body="{\"runId\":\"$RUN_ID\",\"projectCode\":\"$code\",\"status\":\"$status\",\"log\":$log_content}"
+  curl -s -X POST "$API_URL/api/cron/log/entry" \
+    -H "Authorization: Bearer ${CRON_SECRET}" \
+    -H "Content-Type: application/json" \
+    -d "$body" > /dev/null
+}
 
 # ─── 1. Obtener proyectos y pasar a CREANDO_CODIGO ───────────────────────────
 echo "[desarrollar] Consultando proyectos en ENTORNO_CONSTRUIDO..."
@@ -58,6 +82,7 @@ No te detengas hasta haber completado todos los requisitos."
 declare -a PIDS=()
 declare -a IDS=()
 declare -a CODES=()
+declare -a LOGS=()
 
 while IFS=' ' read -r PROJECT_ID PROJECT_CODE; do
   PROJECT_DIR="$REPO_ROOT/viteapps-projects/$PROJECT_CODE"
@@ -81,6 +106,7 @@ while IFS=' ' read -r PROJECT_ID PROJECT_CODE; do
   PIDS+=($!)
   IDS+=("$PROJECT_ID")
   CODES+=("$PROJECT_CODE")
+  LOGS+=("$LOG_FILE")
 done <<< "$PROJECTS"
 
 # ─── 3. Esperar y actualizar estados ─────────────────────────────────────────
@@ -90,13 +116,29 @@ for i in "${!PIDS[@]}"; do
   PID="${PIDS[$i]}"
   ID="${IDS[$i]}"
   CODE="${CODES[$i]}"
+  LOG_FILE="${LOGS[$i]}"
 
   if wait "$PID"; then
     SUCCESS="true"
     echo "[desarrollar] $CODE completado con éxito."
+
+    PROJECT_DIR="$REPO_ROOT/viteapps-projects/$CODE"
+    echo "[desarrollar] $CODE — commiteando cambios en GitHub..."
+    gh auth setup-git
+    git -C "$PROJECT_DIR" add -A
+    if git -C "$PROJECT_DIR" diff --cached --quiet; then
+      echo "[desarrollar] $CODE — sin cambios que commitear."
+    else
+      git -C "$PROJECT_DIR" commit -m "feat: implementación de requisitos"
+      git -C "$PROJECT_DIR" push
+      echo "[desarrollar] $CODE — cambios subidos a GitHub."
+    fi
+
+    log_entry "$CODE" "OK" "$LOG_FILE"
   else
     SUCCESS="false"
-    echo "[desarrollar] $CODE terminó con error. Revisa $LOG_DIR/${CODE}-*.log"
+    echo "[desarrollar] $CODE terminó con error. Revisa $LOG_FILE"
+    log_entry "$CODE" "ERROR" "$LOG_FILE"
   fi
 
   curl -s -X POST "$API_URL/api/cron/desarrollar/complete" \

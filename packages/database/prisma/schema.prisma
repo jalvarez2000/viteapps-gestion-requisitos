@@ -37,6 +37,35 @@ enum ProjectSize {
   XL
 }
 
+// ─────────────────────────────────────────
+// CRON LOG
+// Registro de ejecuciones de los runners.
+// ─────────────────────────────────────────
+
+model CronLog {
+  id         String         @id @default(cuid())
+  runner     String
+  startedAt  DateTime       @default(now())
+  finishedAt DateTime?
+  entries    CronLogEntry[]
+
+  @@index([runner])
+}
+
+model CronLogEntry {
+  id          String   @id @default(cuid())
+  cronLogId   String
+  projectCode String
+  status      String
+  log         String?
+  createdAt   DateTime @default(now())
+
+  cronLog CronLog @relation(fields: [cronLogId], references: [id], onDelete: Cascade)
+
+  @@index([cronLogId])
+  @@index([projectCode])
+}
+
 enum ProjectStatus {
   SOLICITADO
   CREANDO_ENTORNO
