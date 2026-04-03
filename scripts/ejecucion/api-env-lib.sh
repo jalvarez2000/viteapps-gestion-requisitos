@@ -7,7 +7,7 @@
 
 API_URL="http://localhost:5555"
 SENTINEL="/tmp/api-current-env"
-LOCK_DIR="/tmp/api-env.lock"
+LOCK_DIR="/tmp/api-env-lock.dir"
 
 api_ready() {
   curl -s --max-time 2 "$API_URL" > /dev/null 2>&1
@@ -83,10 +83,12 @@ ensure_api_env() {
   _release_lock
 
   echo "[api-env] Esperando a que la API esté lista..."
-  for i in $(seq 1 30); do
+  for i in $(seq 1 60); do
     sleep 2
     if api_ready; then
       echo "[api-env] API lista en $env_name tras $((i * 2))s."
+      # Espera extra para que Next.js compile las rutas
+      sleep 5
       return 0
     fi
   done

@@ -28,7 +28,7 @@ RUN_ID=$(curl -s -X POST "$API_URL/api/cron/log/start" \
 echo "[cron-status-runner] entorno=$ENV run_id=${RUN_ID}"
 
 # ─── Ejecutar cron-status y capturar resultado ────────────────────────────────
-RESPONSE=$(curl -s "$API_URL/api/cron/projects-status" \
+RESPONSE=$(curl -s --max-time 300 "$API_URL/api/cron/projects-status" \
   -H "Authorization: Bearer ${CRON_SECRET}")
 
 echo "[cron-status-runner] Respuesta: $RESPONSE"
